@@ -41,21 +41,12 @@
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">MCP Server Configuration</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
-          <p>The <code>.mcp.json</code> file in this project is pre-configured. You just need to add your API keys:</p>
-          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;white-space:pre;overflow-x:auto;line-height:1.5">{
-  "mcpServers": {
-    "alpaca": {
-      "command": "uvx",
-      "args": ["alpaca-mcp-server"],
-      "env": {
-        "ALPACA_API_KEY": "your-api-key-here",
-        "ALPACA_SECRET_KEY": "your-secret-here",
-        "ALPACA_PAPER_TRADE": "true"
-      }
-    }
-  }
-}</div>
-          <p style="margin-top:var(--space-sm)">Edit <code>.mcp.json</code> in the project root and fill in your <code>ALPACA_API_KEY</code> and <code>ALPACA_SECRET_KEY</code>.</p>
+          <p>The <code>.mcp.json</code> file in this project is pre-configured. Your API keys are stored as <strong style="color:var(--text-primary)">Windows environment variables</strong> so they never end up in any file in the repo.</p>
+          <p style="margin-top:var(--space-xs)">Set these in <strong style="color:var(--text-primary)">Windows Settings &gt; System &gt; About &gt; Advanced system settings &gt; Environment Variables</strong> (User variables):</p>
+          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;overflow-x:auto;line-height:1.8">ALPACA_API_KEY = PK...<br>ALPACA_SECRET_KEY = your-secret-key</div>
+          <p style="margin-top:var(--space-xs)">Or via PowerShell (runs once, persists across reboots):</p>
+          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;overflow-x:auto;line-height:1.8">[Environment]::SetEnvironmentVariable("ALPACA_API_KEY", "PK...", "User")<br>[Environment]::SetEnvironmentVariable("ALPACA_SECRET_KEY", "your-secret", "User")</div>
+          <p style="margin-top:var(--space-xs)">After setting these, restart your terminal. The MCP server inherits them automatically — no secrets in any config file.</p>
         </div>
       </div>
 
