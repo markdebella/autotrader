@@ -2,6 +2,7 @@
  * view-components.js — Alpine data functions for all views
  *
  * Each view HTML uses x-data="ComponentName()" which calls these functions.
+ * This app is a read-only dashboard — trading is handled via the Alpaca MCP server in Claude Code.
  */
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -38,119 +39,6 @@ function Dashboard() {
     async refresh() {
       await App.refreshPortfolio();
       Toast.success('Portfolio refreshed.');
-    },
-  };
-}
-
-// ── Trade ──────────────────────────────────────────────────────────────────────
-
-function Trade() {
-  return {
-    symbol: '',
-    side: 'buy',
-    orderType: 'market',
-    qty: null,
-    limitPrice: null,
-    stopPrice: null,
-    timeInForce: 'day',
-    notes: '',
-    showConfirm: false,
-
-    get alpacaConnected() { return Alpaca.isConfigured(); },
-
-    get orderTypeDescription() {
-      const ot = CONFIG.orderTypes.find(x => x.id === this.orderType);
-      return ot?.description || '';
-    },
-
-    get tifDescription() {
-      const tif = CONFIG.timeInForce.find(x => x.id === this.timeInForce);
-      return tif?.description || '';
-    },
-
-    get canSubmit() {
-      if (!this.symbol.trim()) return false;
-      if (!this.qty || this.qty <= 0) return false;
-      if ((this.orderType === 'limit' || this.orderType === 'stop_limit') && !this.limitPrice) return false;
-      if ((this.orderType === 'stop' || this.orderType === 'stop_limit') && !this.stopPrice) return false;
-      return true;
-    },
-
-    init() {
-      // Pre-fill symbol from route params (e.g., from watchlist click)
-      const params = Alpine.store('ui').routeParams;
-      if (params.id) {
-        this.symbol = params.id.toUpperCase();
-      }
-    },
-
-    async submitOrder() {
-      this.showConfirm = false;
-
-      const trade = await App.submitTrade({
-        symbol: this.symbol,
-        side: this.side,
-        type: this.orderType,
-        timeInForce: this.timeInForce,
-        qty: this.qty.toString(),
-        limitPrice: this.limitPrice ? this.limitPrice.toString() : undefined,
-        stopPrice: this.stopPrice ? this.stopPrice.toString() : undefined,
-      });
-
-      if (trade) {
-        // Save notes if provided
-        if (this.notes.trim()) {
-          trade.notes = this.notes;
-          await Drive.saveTrade(trade);
-        }
-        // Reset form
-        this.symbol = '';
-        this.qty = null;
-        this.limitPrice = null;
-        this.stopPrice = null;
-        this.notes = '';
-      }
-    },
-  };
-}
-
-// ── Watchlist ─────────────────────────────────────────────────────────────────
-
-function Watchlist() {
-  return {
-    newSymbol: '',
-
-    get watchlist() {
-      return Alpine.store('data').settings?.watchlist || [];
-    },
-
-    init() {},
-
-    async addSymbol() {
-      const sym = this.newSymbol.trim().toUpperCase();
-      if (!sym) return;
-
-      const settings = Alpine.store('data').settings;
-      if (settings.watchlist.includes(sym)) {
-        Toast.info(`${sym} is already on your watchlist.`);
-        this.newSymbol = '';
-        return;
-      }
-
-      settings.watchlist.push(sym);
-      Alpine.store('data').settings = { ...settings };
-      await Drive.saveSettings(settings);
-      Toast.success(`Added ${sym} to watchlist.`);
-      this.newSymbol = '';
-    },
-
-    async removeSymbol(idx) {
-      const settings = Alpine.store('data').settings;
-      const sym = settings.watchlist[idx];
-      settings.watchlist.splice(idx, 1);
-      Alpine.store('data').settings = { ...settings };
-      await Drive.saveSettings(settings);
-      Toast.info(`Removed ${sym} from watchlist.`);
     },
   };
 }
@@ -192,7 +80,6 @@ function Settings() {
     showSecret: false,
     testing: false,
     connectionStatus: null,
-    riskLimits: { ...CONFIG.defaultRiskLimits },
 
     get driveFolderId() { return Drive.getFolderId(); },
 
@@ -202,7 +89,6 @@ function Settings() {
         this.apiKeyId = settings.brokerage.apiKeyId || '';
         this.apiSecretKey = settings.brokerage.apiSecretKey || '';
         this.paperMode = settings.brokerage.paperMode;
-        this.riskLimits = { ...CONFIG.defaultRiskLimits, ...settings.riskLimits };
       }
     },
 
@@ -265,14 +151,6 @@ function Settings() {
       }
     },
 
-    async saveRiskLimits() {
-      const settings = Alpine.store('data').settings;
-      settings.riskLimits = { ...this.riskLimits };
-      Alpine.store('data').settings = { ...settings };
-      await Drive.saveSettings(settings);
-      Toast.success('Risk limits saved.');
-    },
-
     async exportData() {
       const manifest = Alpine.store('data').manifest;
       const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
@@ -291,7 +169,7 @@ function Settings() {
 
 function Education() {
   return {
-    tab: 'glossary',
+    tab: 'mcp',
     searchQuery: '',
 
     get filteredGlossary() {

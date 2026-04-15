@@ -1,7 +1,8 @@
 /**
- * alpaca.js — Alpaca Markets API client
+ * alpaca.js — Alpaca Markets API client (read-only)
  *
- * All REST calls to Alpaca's Trading API v2.
+ * Read-only REST calls to Alpaca's Trading API v2.
+ * Trading is handled via the Alpaca MCP server in Claude Code.
  * Credentials are loaded from settings (stored in Google Drive).
  * CORS-enabled — works directly from the browser.
  */
@@ -72,11 +73,7 @@ const Alpaca = (() => {
       return await request('GET', `/v2/positions/${encodeURIComponent(symbol)}`);
     },
 
-    async closePosition(symbol) {
-      return await request('DELETE', `/v2/positions/${encodeURIComponent(symbol)}`);
-    },
-
-    // ── Orders ────────────────────────────────────────────────────────────────
+    // ── Orders (read-only) ──────────────────────────────────────────────────────
 
     async getOrders(params = {}) {
       return await request('GET', '/v2/orders', null, {
@@ -84,23 +81,6 @@ const Alpaca = (() => {
         limit:  params.limit || 50,
         direction: params.direction || 'desc',
       });
-    },
-
-    async submitOrder(order) {
-      return await request('POST', '/v2/orders', {
-        symbol:        order.symbol,
-        qty:           order.qty || undefined,
-        notional:      order.notional || undefined, // dollar amount for fractional
-        side:          order.side,        // 'buy' or 'sell'
-        type:          order.type,        // 'market', 'limit', 'stop', 'stop_limit'
-        time_in_force: order.timeInForce, // 'day' or 'gtc'
-        limit_price:   order.limitPrice || undefined,
-        stop_price:    order.stopPrice || undefined,
-      });
-    },
-
-    async cancelOrder(orderId) {
-      return await request('DELETE', `/v2/orders/${orderId}`);
     },
 
     // ── Portfolio History ─────────────────────────────────────────────────────

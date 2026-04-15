@@ -1,6 +1,9 @@
 /**
  * app.js — Alpine.js global stores, router, and app boot sequence
  *
+ * This app is a read-only portfolio dashboard. Trading is handled via
+ * the Alpaca MCP server in Claude Code.
+ *
  * Boot order:
  *  1. Alpine stores initialized (before Alpine starts)
  *  2. Auth.init() — sets up GIS token client, loads GAPI
@@ -89,42 +92,6 @@ const Router = {
 
 window.addEventListener('hashchange', () => Router.restore());
 
-// ── Trade factory ─────────────────────────────────────────────────────────────
-
-const TradeFactory = {
-  blank(overrides = {}) {
-    return {
-      id: Utils.uuid(),
-      version: 1,
-      createdAt: Utils.nowISO(),
-      updatedAt: Utils.nowISO(),
-      alpacaOrderId: null,
-      symbol: '',
-      side: 'buy',
-      type: 'market',
-      timeInForce: 'day',
-      qty: null,
-      notional: null,
-      limitPrice: null,
-      stopPrice: null,
-      status: 'pending',         // pending | submitted | filled | canceled | rejected
-      filledQty: null,
-      filledAvgPrice: null,
-      submittedAt: null,
-      filledAt: null,
-      canceledAt: null,
-      estimatedCost: null,
-      actualCost: null,
-      strategyId: null,
-      strategyName: null,
-      claudeAdvisory: null,
-      notes: '',
-      tags: [],
-      ...overrides,
-    };
-  },
-};
-
 // ── App bootstrap ─────────────────────────────────────────────────────────────
 
 const App = {
@@ -208,63 +175,6 @@ const App = {
     }
   },
 
-  /** Submit a trade to Alpaca and record it */
-  async submitTrade(orderParams) {
-    const trade = TradeFactory.blank({
-      symbol: orderParams.symbol,
-      side: orderParams.side,
-      type: orderParams.type,
-      timeInForce: orderParams.timeInForce,
-      qty: orderParams.qty,
-      notional: orderParams.notional,
-      limitPrice: orderParams.limitPrice,
-      stopPrice: orderParams.stopPrice,
-      submittedAt: Utils.nowISO(),
-      status: 'submitted',
-    });
-
-    try {
-      const result = await Alpaca.submitOrder(orderParams);
-      trade.alpacaOrderId = result.id;
-      trade.status = result.status;
-      if (result.filled_avg_price) {
-        trade.filledAvgPrice = parseFloat(result.filled_avg_price);
-        trade.filledQty = parseFloat(result.filled_qty);
-        trade.filledAt = result.filled_at;
-        trade.status = 'filled';
-      }
-
-      await Drive.saveTrade(trade);
-      await Manifest.upsert(trade);
-      Toast.success(`Order ${trade.status}: ${trade.side.toUpperCase()} ${trade.symbol}`);
-
-      // Refresh portfolio after a short delay to let order settle
-      setTimeout(() => App.refreshPortfolio(), 2000);
-
-      return trade;
-    } catch (err) {
-      trade.status = 'rejected';
-      console.error('Order error:', err);
-      Toast.error(`Order failed: ${err.message}`);
-      return null;
-    }
-  },
-
-  /** Load full analytics data (all trades) */
-  async loadAllForAnalytics() {
-    const data = Alpine.store('data');
-    if (data.allTrades) return data.allTrades;
-    data.loading = true;
-    data.loadingMessage = 'Loading full trade history...';
-    try {
-      const all = await Drive.loadAllTrades(data.manifest);
-      data.allTrades = all;
-      return all;
-    } finally {
-      data.loading = false;
-      data.loadingMessage = '';
-    }
-  },
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

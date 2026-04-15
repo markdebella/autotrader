@@ -23,27 +23,6 @@ const CONFIG = {
   // Default watchlist for new users
   defaultWatchlist: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'],
 
-  // Order types (with novice-friendly descriptions)
-  orderTypes: [
-    { id: 'market',     label: 'Market',     description: 'Buy/sell immediately at the current best available price. Fastest but price may vary.' },
-    { id: 'limit',      label: 'Limit',      description: 'Set a maximum price to buy or minimum price to sell. Only executes at your price or better.' },
-    { id: 'stop',       label: 'Stop',       description: 'Triggers a market order when the stock hits a specific price. Used to limit losses.' },
-    { id: 'stop_limit', label: 'Stop Limit', description: 'Triggers a limit order when the stock hits a specific price. More control than a stop order.' },
-  ],
-
-  // Time in force options
-  timeInForce: [
-    { id: 'day', label: 'Day',              description: 'Order expires at end of trading day if not filled.' },
-    { id: 'gtc', label: 'Good Till Canceled', description: 'Order stays open until filled or you cancel it.' },
-  ],
-
-  // Strategy types (Phase 2)
-  strategyTypes: [
-    { id: 'ma_crossover',   label: 'Moving Average Crossover', description: 'Buy when a short-term average crosses above a long-term average.' },
-    { id: 'rsi',            label: 'RSI (Relative Strength)',   description: 'Buy when oversold (RSI < 30), sell when overbought (RSI > 70).' },
-    { id: 'mean_reversion', label: 'Mean Reversion',            description: 'Buy when price drops below average, sell when it returns.' },
-  ],
-
   // Glossary terms for education view
   glossary: [
     { term: 'Market Order',    definition: 'An order to buy or sell immediately at the best available price. Guarantees execution but not price.' },

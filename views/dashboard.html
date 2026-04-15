@@ -9,7 +9,7 @@
         <polyline points="16 7 22 7 22 13"/>
       </svg>
       <p style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px">Connect Your Brokerage</p>
-      <p>Head to <a href="#" @click.prevent="Router.go('settings')">Settings</a> to enter your Alpaca API keys and start trading.</p>
+      <p>Head to <a href="#" @click.prevent="Router.go('settings')">Settings</a> to enter your Alpaca API keys and view your portfolio.</p>
     </div>
   </template>
 
@@ -65,12 +65,12 @@
       <div class="section-heading">Positions</div>
       <template x-if="positions.length === 0">
         <div class="card" style="text-align:center;color:var(--text-muted);padding:var(--space-xl)">
-          No open positions. <a href="#" @click.prevent="Router.go('trade')">Place your first trade</a>.
+          No open positions. Use the Alpaca MCP server in Claude Code to place trades.
         </div>
       </template>
       <template x-for="pos in positions" :key="pos.symbol">
         <div class="position-card" :class="parseFloat(pos.unrealized_pl) >= 0 ? 'gain' : 'loss'"
-             @click="Router.go('trade', {id: pos.symbol})" style="margin-bottom:var(--space-sm)">
+             style="margin-bottom:var(--space-sm)">
           <div class="position-card__main">
             <div class="position-card__symbol" x-text="pos.symbol"></div>
             <div class="position-card__qty" x-text="parseFloat(pos.qty) + ' shares @ ' + Utils.formatCurrency(parseFloat(pos.avg_entry_price))"></div>

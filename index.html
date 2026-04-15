@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0e17">
-  <meta name="description" content="Paper & live stock trading with automated strategies.">
+  <meta name="description" content="Visual portfolio dashboard for Alpaca. Trade via Claude MCP, track here.">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -54,7 +54,7 @@
     </div>
 
     <p class="signin-screen__tagline">
-      Paper trade, learn, and automate — your portfolio, your Google Drive.
+      Visual portfolio dashboard — trade via Claude MCP, track here.
     </p>
 
     <button
@@ -108,21 +108,12 @@
       <!-- Desktop nav -->
       <nav class="top-bar__desktop-nav" role="navigation" aria-label="Main">
         <button :class="{active: $store.ui.activeView==='dashboard'}"  @click="Router.go('dashboard')">Dashboard</button>
-        <button :class="{active: $store.ui.activeView==='trade'}"      @click="Router.go('trade')">Trade</button>
-        <button :class="{active: $store.ui.activeView==='watchlist'}"   @click="Router.go('watchlist')">Watchlist</button>
         <button :class="{active: $store.ui.activeView==='analytics'}"  @click="Router.go('analytics')">Analytics</button>
         <button :class="{active: $store.ui.activeView==='education'}"  @click="Router.go('education')">Learn</button>
         <button :class="{active: $store.ui.activeView==='settings'}"   @click="Router.go('settings')">Settings</button>
       </nav>
 
       <div class="top-bar__spacer"></div>
-
-      <!-- Quick trade button (desktop) -->
-      <button class="btn btn-primary btn-sm hide-mobile"
-              @click="Router.go('trade')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        New Trade
-      </button>
     </header>
 
     <!-- Toast notifications -->
@@ -161,26 +152,6 @@
         Home
       </button>
       <button class="bottom-nav__item"
-              :class="{active: $store.ui.activeView==='trade'}"
-              @click="Router.go('trade')"
-              aria-label="Trade">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-          <polyline points="16 7 22 7 22 13"/>
-        </svg>
-        Trade
-      </button>
-      <button class="bottom-nav__item"
-              :class="{active: $store.ui.activeView==='watchlist'}"
-              @click="Router.go('watchlist')"
-              aria-label="Watchlist">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Watch
-      </button>
-      <button class="bottom-nav__item"
               :class="{active: $store.ui.activeView==='analytics'}"
               @click="Router.go('analytics')"
               aria-label="Analytics">
@@ -188,6 +159,16 @@
           <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
         Analytics
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='education'}"
+              @click="Router.go('education')"
+              aria-label="Learn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        Learn
       </button>
       <button class="bottom-nav__item"
               :class="{active: $store.ui.activeView==='settings'}"

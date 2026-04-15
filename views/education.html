@@ -7,9 +7,98 @@
 
   <!-- Tab bar -->
   <div class="tab-bar">
+    <button :class="{active: tab === 'mcp'}" @click="tab = 'mcp'">MCP Setup</button>
     <button :class="{active: tab === 'glossary'}" @click="tab = 'glossary'">Glossary</button>
     <button :class="{active: tab === 'howto'}" @click="tab = 'howto'">How It Works</button>
   </div>
+
+  <!-- MCP Setup tab -->
+  <template x-if="tab === 'mcp'">
+    <div>
+      <!-- What is MCP -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Trading with Claude + Alpaca MCP</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>This dashboard is <strong style="color:var(--text-primary)">read-only</strong> — it shows your portfolio, positions, and trade history. All actual trading is done through <strong style="color:var(--text-primary)">Claude Code</strong> using the <strong style="color:var(--text-primary)">Alpaca MCP server</strong>.</p>
+          <p>The MCP (Model Context Protocol) server gives Claude direct access to 60+ Alpaca API tools — placing orders, checking quotes, managing watchlists, analyzing portfolio data, and more — all through natural language.</p>
+        </div>
+      </div>
+
+      <!-- Prerequisites -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Prerequisites</div>
+        <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
+          <li>Install <strong style="color:var(--text-primary)">Python 3.10+</strong> from <a href="https://python.org" target="_blank">python.org</a></li>
+          <li>Install <strong style="color:var(--text-primary)">uv</strong> (Python package manager):
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">pip install uv</code>
+          </li>
+          <li>Install <strong style="color:var(--text-primary)">Claude Code</strong> CLI if you haven't already</li>
+          <li>Have your <strong style="color:var(--text-primary)">Alpaca API keys</strong> ready (same ones you entered in Settings)</li>
+        </ol>
+      </div>
+
+      <!-- MCP Configuration -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">MCP Server Configuration</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>The <code>.mcp.json</code> file in this project is pre-configured. You just need to add your API keys:</p>
+          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;white-space:pre;overflow-x:auto;line-height:1.5">{
+  "mcpServers": {
+    "alpaca": {
+      "command": "uvx",
+      "args": ["alpaca-mcp-server"],
+      "env": {
+        "ALPACA_API_KEY": "your-api-key-here",
+        "ALPACA_SECRET_KEY": "your-secret-here",
+        "ALPACA_PAPER_TRADE": "true"
+      }
+    }
+  }
+}</div>
+          <p style="margin-top:var(--space-sm)">Edit <code>.mcp.json</code> in the project root and fill in your <code>ALPACA_API_KEY</code> and <code>ALPACA_SECRET_KEY</code>.</p>
+        </div>
+      </div>
+
+      <!-- Example commands -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Example Claude Commands</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-md)">
+          <div>
+            <strong style="color:var(--text-primary)">Check your portfolio</strong>
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Show me my current portfolio and positions"</code>
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Place a trade</strong>
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Buy 10 shares of AAPL at market price"</code>
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Get a quote</strong>
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"What's the current price of TSLA?"</code>
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Analyze a stock</strong>
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Analyze MSFT — give me price history, volume trends, and your take"</code>
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Auto-trade with /loop</strong>
+            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Check my positions every 5 minutes. If any position drops more than 3%, sell it."</code>
+            <div class="form-hint" style="margin-top:4px">Use Claude Code's <code>/loop</code> command to run automated monitoring and trading strategies.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safety note -->
+      <div class="card" style="border-color:var(--warning)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md);color:var(--warning)">
+          Safety: Paper Trading First
+        </div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>The MCP server defaults to <strong>paper trading mode</strong> (<code>ALPACA_PAPER_TRADE=true</code>). This means all trades use simulated money — you can't lose real funds while learning.</p>
+          <p>To switch to live trading, change <code>ALPACA_PAPER_TRADE</code> to <code>"false"</code> in <code>.mcp.json</code>. <strong style="color:var(--danger)">Only do this when you're confident in your strategy and understand the risks.</strong></p>
+        </div>
+      </div>
+    </div>
+  </template>
 
   <!-- Glossary tab -->
   <template x-if="tab === 'glossary'">
@@ -41,16 +130,16 @@
   <!-- How-to tab -->
   <template x-if="tab === 'howto'">
     <div>
-      <!-- How to place your first trade -->
+      <!-- How to place your first trade via MCP -->
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Placing Your First Trade</div>
         <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
           <li>Go to <strong>Settings</strong> and enter your Alpaca API keys (paper trading first!)</li>
-          <li>Go to <strong>Trade</strong> and enter a stock symbol (e.g., AAPL for Apple)</li>
-          <li>Choose <strong>Buy</strong> and set order type to <strong>Market</strong> (simplest)</li>
-          <li>Enter the number of shares you want to buy</li>
-          <li>Review the confirmation dialog carefully, then click <strong>Confirm</strong></li>
-          <li>Check your <strong>Dashboard</strong> to see your new position!</li>
+          <li>Set up the <strong>Alpaca MCP server</strong> in Claude Code (see <strong>MCP Setup</strong> tab)</li>
+          <li>Open <strong>Claude Code</strong> in this project directory</li>
+          <li>Tell Claude: <em>"Buy 5 shares of AAPL at market price"</em></li>
+          <li>Claude will confirm the order details before executing</li>
+          <li>Come back to this <strong>Dashboard</strong> and click <strong>Refresh</strong> to see your new position!</li>
         </ol>
       </div>
 
