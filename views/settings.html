@@ -1,0 +1,145 @@
+<!-- Settings View -->
+<div x-data="Settings()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Settings</h1>
+  </div>
+
+  <!-- Account section -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Google Account</div>
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:var(--space-sm)">
+      Signed in. Your data is stored in your Google Drive.
+    </p>
+    <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm);flex-wrap:wrap">
+      <a class="btn btn-secondary btn-sm" :href="'https://drive.google.com/drive/folders/' + driveFolderId" target="_blank" x-show="driveFolderId">
+        Open Drive Folder
+      </a>
+      <button class="btn btn-secondary btn-sm" @click="Auth.signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Alpaca brokerage connection -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Alpaca Brokerage Connection</div>
+
+    <!-- Onboarding steps (shown when not connected) -->
+    <template x-if="!apiKeyId">
+      <div style="margin-top:var(--space-md)">
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:var(--space-md)">
+          AutoTrader connects to <a href="https://alpaca.markets" target="_blank">Alpaca Markets</a>, a commission-free brokerage with a developer API. Follow these steps to get started:
+        </p>
+        <ol class="onboarding-steps">
+          <li>Create a free account at <a href="https://app.alpaca.markets/signup" target="_blank">alpaca.markets/signup</a></li>
+          <li>In your Alpaca dashboard, go to <strong>API Keys</strong> and click <strong>Generate New Key</strong></li>
+          <li>Copy your <strong>API Key ID</strong> and <strong>Secret Key</strong> into the fields below</li>
+          <li>Click <strong>Test Connection</strong> to verify everything works</li>
+          <li>You start with <strong>$100,000 in paper (simulated) money</strong> — no real funds needed!</li>
+        </ol>
+      </div>
+    </template>
+
+    <!-- API key inputs -->
+    <div style="margin-top:var(--space-lg)">
+      <div class="form-group">
+        <label class="form-label">API Key ID</label>
+        <input type="text" class="form-input" placeholder="PK..."
+               x-model="apiKeyId" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Secret Key</label>
+        <div style="position:relative">
+          <input :type="showSecret ? 'text' : 'password'" class="form-input" placeholder="Your secret key"
+                 x-model="apiSecretKey" autocomplete="off" style="padding-right:3rem">
+          <button class="btn-ghost" @click="showSecret = !showSecret"
+                  style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:var(--space-xs)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round">
+              <template x-if="!showSecret">
+                <g><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></g>
+              </template>
+              <template x-if="showSecret">
+                <g><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></g>
+              </template>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paper / Live toggle -->
+      <div class="form-group">
+        <label class="form-label">Trading Mode</label>
+        <div style="display:flex;gap:var(--space-sm)">
+          <button class="btn btn-sm" :class="paperMode ? 'btn-success' : 'btn-secondary'" @click="paperMode = true">
+            Paper (Simulated)
+          </button>
+          <button class="btn btn-sm" :class="!paperMode ? 'btn-danger' : 'btn-secondary'" @click="confirmLiveMode()">
+            Live (Real Money)
+          </button>
+        </div>
+        <div class="form-hint" x-show="paperMode">Paper mode uses $100K of simulated money. Safe for learning.</div>
+        <div class="form-hint" style="color:var(--danger)" x-show="!paperMode">Live mode trades with real money. Proceed with caution.</div>
+      </div>
+
+      <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" @click="testConnection()" :disabled="!apiKeyId || !apiSecretKey || testing">
+          <span x-show="!testing">Test Connection</span>
+          <span x-show="testing">Testing...</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" @click="saveCredentials()" :disabled="!apiKeyId || !apiSecretKey">
+          Save Credentials
+        </button>
+      </div>
+
+      <!-- Connection status -->
+      <template x-if="connectionStatus">
+        <div style="margin-top:var(--space-md);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-md);font-size:0.85rem"
+             :style="connectionStatus.ok ? 'background:var(--gain-bg);color:var(--gain);border:1px solid rgba(34,197,94,0.3)' : 'background:var(--loss-bg);color:var(--loss);border:1px solid rgba(239,68,68,0.3)'"
+             x-text="connectionStatus.message">
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Risk limits -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Risk Management</div>
+    <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:var(--space-xs);margin-bottom:var(--space-lg)">
+      Safety limits to protect you from common novice mistakes.
+    </p>
+
+    <div class="form-group">
+      <label class="form-label">Max Position Size (% of portfolio)</label>
+      <input type="number" class="form-input" x-model.number="riskLimits.maxPositionPct" min="1" max="100" step="1">
+      <div class="form-hint">Default: 10%. Prevents putting too much of your portfolio into one stock.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Max Position ($)</label>
+      <input type="number" class="form-input" x-model.number="riskLimits.maxPositionDollars" min="100" step="100">
+      <div class="form-hint">Hard dollar cap per position regardless of portfolio size.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Daily Loss Limit ($)</label>
+      <input type="number" class="form-input" x-model.number="riskLimits.dailyLossLimit" min="50" step="50">
+      <div class="form-hint">Trading pauses when your daily losses reach this amount. Default: $500.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Max Trades Per Day</label>
+      <input type="number" class="form-input" x-model.number="riskLimits.maxTradesPerDay" min="1" max="100" step="1">
+      <div class="form-hint">Prevents excessive trading. Be aware of the PDT rule (3 day trades per 5 days for accounts under $25K).</div>
+    </div>
+
+    <button class="btn btn-primary btn-sm" @click="saveRiskLimits()">Save Risk Limits</button>
+  </div>
+
+  <!-- Data management -->
+  <div class="card">
+    <div class="card__title">Data Management</div>
+    <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm);flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" @click="exportData()">Export Trade History (JSON)</button>
+    </div>
+  </div>
+
+</div>

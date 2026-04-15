@@ -1,0 +1,13 @@
+/* ── Chart containers ────────────────────────────────────────────────────── */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+.chart-container canvas {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .chart-container { height: 220px; }
+}

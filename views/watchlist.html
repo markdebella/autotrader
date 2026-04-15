@@ -1,0 +1,42 @@
+<!-- Watchlist View -->
+<div x-data="Watchlist()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Watchlist</h1>
+  </div>
+
+  <!-- Add symbol -->
+  <div class="card" style="margin-bottom:var(--space-lg)">
+    <div style="display:flex;gap:var(--space-sm)">
+      <input type="text" class="form-input" placeholder="Add symbol (e.g. NVDA)"
+             x-model="newSymbol" @input="newSymbol = newSymbol.toUpperCase()"
+             @keydown.enter="addSymbol()"
+             style="text-transform:uppercase;font-weight:600">
+      <button class="btn btn-primary" @click="addSymbol()" :disabled="!newSymbol.trim()">Add</button>
+    </div>
+  </div>
+
+  <!-- Watchlist items -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <template x-if="watchlist.length === 0">
+      <div class="empty-state">
+        <p>Your watchlist is empty. Add symbols above to start tracking stocks.</p>
+      </div>
+    </template>
+    <template x-for="(symbol, idx) in watchlist" :key="symbol">
+      <div class="watchlist-item" @click="Router.go('trade', {id: symbol})">
+        <div class="watchlist-item__symbol" x-text="symbol"></div>
+        <div class="watchlist-item__price">--</div>
+        <div class="watchlist-item__change">--</div>
+        <button class="watchlist-item__remove" @click.stop="removeSymbol(idx)" aria-label="Remove">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <p class="form-hint" style="margin-top:var(--space-md);text-align:center">
+    Tap a symbol to trade. Live quotes will be available once market data is connected.
+  </p>
+
+</div>

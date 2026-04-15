@@ -1,0 +1,69 @@
+<!-- Analytics View -->
+<div x-data="Analytics()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Analytics</h1>
+  </div>
+
+  <!-- Not connected -->
+  <template x-if="!alpacaConnected">
+    <div class="empty-state">
+      <p>Connect your Alpaca account in <a href="#" @click.prevent="Router.go('settings')">Settings</a> to see portfolio analytics.</p>
+    </div>
+  </template>
+
+  <template x-if="alpacaConnected">
+    <div>
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button :class="{active: tab === 'portfolio'}" @click="tab = 'portfolio'">Portfolio</button>
+        <button :class="{active: tab === 'trades'}" @click="tab = 'trades'">Trade History</button>
+      </div>
+
+      <!-- Portfolio tab -->
+      <template x-if="tab === 'portfolio'">
+        <div>
+          <!-- Timeframe selector -->
+          <div style="display:flex;gap:var(--space-xs);margin-bottom:var(--space-md)">
+            <template x-for="tf in ['1D','1W','1M','3M','1A','all']" :key="tf">
+              <button class="btn btn-sm"
+                      :class="timeframe === tf ? 'btn-primary' : 'btn-secondary'"
+                      @click="timeframe = tf; loadChart()"
+                      x-text="tf === '1A' ? '1Y' : tf === 'all' ? 'All' : tf"
+                      style="padding:4px 12px;min-height:32px;font-size:0.78rem"></button>
+            </template>
+          </div>
+
+          <!-- Chart placeholder -->
+          <div class="card">
+            <div class="chart-container">
+              <canvas id="portfolio-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Trade history tab -->
+      <template x-if="tab === 'trades'">
+        <div>
+          <template x-if="trades.length === 0">
+            <div class="empty-state">
+              <p>No trades yet. Your trade history will appear here after you place orders.</p>
+            </div>
+          </template>
+          <template x-for="trade in trades" :key="trade.id">
+            <div class="order-card" style="margin-bottom:var(--space-sm)">
+              <span class="order-card__side" :class="trade.side" x-text="trade.side"></span>
+              <div class="order-card__main">
+                <div class="order-card__symbol" x-text="trade.symbol"></div>
+                <div class="order-card__details" x-text="(trade.qty || '?') + ' shares \u2022 ' + Utils.formatDateTime(trade.submittedAt)"></div>
+              </div>
+              <span class="order-card__status" :class="trade.status" x-text="trade.status"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+
+</div>

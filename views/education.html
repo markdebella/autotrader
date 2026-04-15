@@ -1,0 +1,101 @@
+<!-- Education View -->
+<div x-data="Education()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Learn Trading</h1>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button :class="{active: tab === 'glossary'}" @click="tab = 'glossary'">Glossary</button>
+    <button :class="{active: tab === 'howto'}" @click="tab = 'howto'">How It Works</button>
+  </div>
+
+  <!-- Glossary tab -->
+  <template x-if="tab === 'glossary'">
+    <div>
+      <!-- Search -->
+      <div class="form-group">
+        <input type="text" class="form-input" placeholder="Search terms..."
+               x-model="searchQuery"
+               style="font-size:0.9rem">
+      </div>
+
+      <!-- Terms -->
+      <div class="card" style="padding:0 var(--space-lg)">
+        <template x-for="item in filteredGlossary" :key="item.term">
+          <div class="glossary-item">
+            <div class="glossary-item__term" x-text="item.term"></div>
+            <div class="glossary-item__definition" x-text="item.definition"></div>
+          </div>
+        </template>
+        <template x-if="filteredGlossary.length === 0">
+          <div style="padding:var(--space-xl);text-align:center;color:var(--text-muted)">
+            No terms match your search.
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- How-to tab -->
+  <template x-if="tab === 'howto'">
+    <div>
+      <!-- How to place your first trade -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Placing Your First Trade</div>
+        <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
+          <li>Go to <strong>Settings</strong> and enter your Alpaca API keys (paper trading first!)</li>
+          <li>Go to <strong>Trade</strong> and enter a stock symbol (e.g., AAPL for Apple)</li>
+          <li>Choose <strong>Buy</strong> and set order type to <strong>Market</strong> (simplest)</li>
+          <li>Enter the number of shares you want to buy</li>
+          <li>Review the confirmation dialog carefully, then click <strong>Confirm</strong></li>
+          <li>Check your <strong>Dashboard</strong> to see your new position!</li>
+        </ol>
+      </div>
+
+      <!-- Understanding order types -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Understanding Order Types</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-md)">
+          <div>
+            <strong style="color:var(--text-primary)">Market Order</strong> — Executes immediately at the current price. Best for beginners. The price you get might differ slightly from what you see (called "slippage"), especially for low-volume stocks.
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Limit Order</strong> — You set the exact price. The order only fills at your price or better. Use when you want to buy at a specific price that's lower than the current price ("I'll buy AAPL if it drops to $180").
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Stop Order</strong> — Triggers when a stock hits your stop price, then becomes a market order. Commonly used as a "stop-loss": "Sell my AAPL if it drops to $170" to limit your downside.
+          </div>
+          <div>
+            <strong style="color:var(--text-primary)">Stop-Limit Order</strong> — Like a stop order, but becomes a limit order instead of a market order. More precise, but the order might not fill if the price moves past your limit.
+          </div>
+        </div>
+      </div>
+
+      <!-- Understanding P&L -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Understanding Your P&L</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p><strong style="color:var(--text-primary)">Unrealized P&L:</strong> The profit or loss on stocks you still own. It's "on paper" — it can change until you sell.</p>
+          <p><strong style="color:var(--text-primary)">Realized P&L:</strong> The actual profit or loss from stocks you've already sold. This is locked in.</p>
+          <p><strong style="color:var(--text-primary)">Daily P&L:</strong> How much your portfolio value has changed since the market opened today.</p>
+        </div>
+      </div>
+
+      <!-- The PDT rule -->
+      <div class="card" style="border-color:var(--warning)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md);color:var(--warning)">
+          Important: The Pattern Day Trader (PDT) Rule
+        </div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>If your account has <strong>less than $25,000</strong>, FINRA limits you to <strong>3 day trades per 5 business days</strong>.</p>
+          <p>A "day trade" = buying and selling the same stock on the same day.</p>
+          <p>If you exceed this limit, your account may be <strong>restricted for 90 days</strong>, allowing only closing trades (selling what you already own).</p>
+          <p><strong style="color:var(--text-primary)">Tip:</strong> This doesn't apply to paper trading, but it's critical to understand before going live.</p>
+        </div>
+      </div>
+    </div>
+  </template>
+
+</div>

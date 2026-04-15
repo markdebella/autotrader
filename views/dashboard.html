@@ -1,0 +1,124 @@
+<!-- Dashboard View -->
+<div x-data="Dashboard()" x-init="init()">
+
+  <!-- Not connected state -->
+  <template x-if="!alpacaConnected">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+        <polyline points="16 7 22 7 22 13"/>
+      </svg>
+      <p style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px">Connect Your Brokerage</p>
+      <p>Head to <a href="#" @click.prevent="Router.go('settings')">Settings</a> to enter your Alpaca API keys and start trading.</p>
+    </div>
+  </template>
+
+  <!-- Connected state -->
+  <template x-if="alpacaConnected">
+    <div>
+      <!-- Portfolio value + P&L -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="display:flex;align-items:baseline;gap:var(--space-md);flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Portfolio Value</div>
+            <div style="font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2"
+                 x-text="Utils.formatCurrency(parseFloat(account?.portfolio_value || 0))"></div>
+          </div>
+          <div>
+            <span style="font-size:1rem;font-weight:600;font-variant-numeric:tabular-nums"
+                  :class="dailyPnl >= 0 ? 'gain' : 'loss'"
+                  x-text="Utils.formatPnL(dailyPnl)"></span>
+            <span style="font-size:0.85rem;color:var(--text-muted);margin-left:4px">today</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <div class="stat-item__value" x-text="Utils.formatCurrency(parseFloat(account?.buying_power || 0))"></div>
+          <div class="stat-item__label">Buying Power</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item__value" x-text="positions.length"></div>
+          <div class="stat-item__label">Positions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-item__value" x-text="openOrders.length"></div>
+          <div class="stat-item__label">Open Orders</div>
+        </div>
+      </div>
+
+      <!-- Market status -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-lg)">
+        <div class="market-status">
+          <span class="market-status__dot" :class="marketOpen ? 'open' : 'closed'"></span>
+          <span x-text="marketOpen ? 'Market Open' : 'Market Closed'"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" @click="refresh()" style="font-size:0.78rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <!-- Positions -->
+      <div class="section-heading">Positions</div>
+      <template x-if="positions.length === 0">
+        <div class="card" style="text-align:center;color:var(--text-muted);padding:var(--space-xl)">
+          No open positions. <a href="#" @click.prevent="Router.go('trade')">Place your first trade</a>.
+        </div>
+      </template>
+      <template x-for="pos in positions" :key="pos.symbol">
+        <div class="position-card" :class="parseFloat(pos.unrealized_pl) >= 0 ? 'gain' : 'loss'"
+             @click="Router.go('trade', {id: pos.symbol})" style="margin-bottom:var(--space-sm)">
+          <div class="position-card__main">
+            <div class="position-card__symbol" x-text="pos.symbol"></div>
+            <div class="position-card__qty" x-text="parseFloat(pos.qty) + ' shares @ ' + Utils.formatCurrency(parseFloat(pos.avg_entry_price))"></div>
+          </div>
+          <div class="position-card__pnl">
+            <div class="position-card__pnl-value"
+                 :class="parseFloat(pos.unrealized_pl) >= 0 ? 'gain' : 'loss'"
+                 x-text="Utils.formatPnL(parseFloat(pos.unrealized_pl))"></div>
+            <div class="position-card__pnl-pct"
+                 x-text="Utils.formatPercent(parseFloat(pos.unrealized_plpc))"></div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Open Orders -->
+      <template x-if="openOrders.length > 0">
+        <div style="margin-top:var(--space-lg)">
+          <div class="section-heading">Open Orders</div>
+          <template x-for="order in openOrders" :key="order.id">
+            <div class="order-card">
+              <span class="order-card__side" :class="order.side" x-text="order.side"></span>
+              <div class="order-card__main">
+                <div class="order-card__symbol" x-text="order.symbol"></div>
+                <div class="order-card__details" x-text="order.qty + ' shares \u2022 ' + order.type + ' \u2022 ' + order.time_in_force.toUpperCase()"></div>
+              </div>
+              <span class="order-card__status" :class="order.status" x-text="order.status"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Recent trades from manifest -->
+      <template x-if="recentTrades.length > 0">
+        <div style="margin-top:var(--space-lg)">
+          <div class="section-heading">Recent Trades</div>
+          <template x-for="trade in recentTrades" :key="trade.id">
+            <div class="order-card">
+              <span class="order-card__side" :class="trade.side" x-text="trade.side"></span>
+              <div class="order-card__main">
+                <div class="order-card__symbol" x-text="trade.symbol"></div>
+                <div class="order-card__details" x-text="trade.qty + ' shares \u2022 ' + Utils.formatDateTime(trade.submittedAt)"></div>
+              </div>
+              <span class="order-card__status" :class="trade.status" x-text="trade.status"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+
+</div>

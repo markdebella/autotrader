@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="description" content="Paper & live stock trading with automated strategies.">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>AutoTrader</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css?v=1.0">
+  <link rel="stylesheet" href="css/components.css?v=1.0">
+  <link rel="stylesheet" href="css/charts.css?v=1.0">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- Google Identity Services + GAPI -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
+  <!-- App scripts (order matters) -->
+  <script src="config.js?v=1.0"></script>
+  <script src="js/utils.js?v=1.0"></script>
+  <script src="js/auth.js?v=1.0"></script>
+  <script src="js/drive.js?v=1.0"></script>
+  <script src="js/manifest.js?v=1.0"></script>
+  <script src="js/seed.js?v=1.0"></script>
+  <script src="js/alpaca.js?v=1.0"></script>
+  <script src="js/view-components.js?v=1.0"></script>
+  <script src="js/app.js?v=1.0"></script>
+</head>
+<body x-data="{}" x-cloak>
+
+  <!-- ── Sign-in screen ───────────────────────────────────────────────── -->
+  <div x-show="$store.auth.status !== 'signed_in' && !$store.data.loading"
+       class="signin-screen">
+
+    <!-- Logo -->
+    <div class="signin-screen__logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true" style="display:inline-block;vertical-align:middle;margin-right:8px">
+        <rect x="2" y="2" width="36" height="36" rx="8" stroke="#3b82f6" stroke-width="2" fill="none"/>
+        <polyline points="8,28 14,18 20,24 26,12 32,16" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="32" cy="16" r="2.5" fill="#22c55e"/>
+      </svg>
+      AutoTrader
+    </div>
+
+    <p class="signin-screen__tagline">
+      Paper trade, learn, and automate — your portfolio, your Google Drive.
+    </p>
+
+    <button
+      class="btn btn-primary btn-lg"
+      :disabled="!$store.auth.gapiReady"
+      @click="Auth.signIn()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <p class="signin-screen__privacy">
+      Your settings and trade history are stored exclusively in your own Google Drive.
+      Nothing is sent to any server we control.<br>
+      <a href="privacy.html" target="_blank">Privacy policy</a>
+    </p>
+
+    <p class="signin-screen__version" x-text="'v' + CONFIG.appVersion"></p>
+  </div>
+
+  <!-- ── Loading overlay ──────────────────────────────────────────────── -->
+  <div x-show="$store.data.loading" class="loading-overlay" x-cloak>
+    <div class="spinner"></div>
+    <p x-text="$store.data.loadingMessage || 'Loading...'"></p>
+  </div>
+
+  <!-- ── Main app shell ───────────────────────────────────────────────── -->
+  <div x-show="$store.auth.status === 'signed_in' && !$store.data.loading"
+       class="app-shell" x-cloak>
+
+    <!-- Top bar -->
+    <header class="top-bar" role="banner">
+      <div class="top-bar__logo" aria-label="AutoTrader">
+        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="36" height="36" rx="8" stroke="#3b82f6" stroke-width="2" fill="none"/>
+          <polyline points="8,28 14,18 20,24 26,12 32,16" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="32" cy="16" r="2.5" fill="#22c55e"/>
+        </svg>
+        AutoTrader
+      </div>
+
+      <!-- Paper/Live badge -->
+      <span class="mode-badge"
+            :class="$store.ui.paperMode ? 'paper' : 'live'"
+            x-text="$store.ui.paperMode ? 'Paper' : 'LIVE'"></span>
+
+      <!-- Desktop nav -->
+      <nav class="top-bar__desktop-nav" role="navigation" aria-label="Main">
+        <button :class="{active: $store.ui.activeView==='dashboard'}"  @click="Router.go('dashboard')">Dashboard</button>
+        <button :class="{active: $store.ui.activeView==='trade'}"      @click="Router.go('trade')">Trade</button>
+        <button :class="{active: $store.ui.activeView==='watchlist'}"   @click="Router.go('watchlist')">Watchlist</button>
+        <button :class="{active: $store.ui.activeView==='analytics'}"  @click="Router.go('analytics')">Analytics</button>
+        <button :class="{active: $store.ui.activeView==='education'}"  @click="Router.go('education')">Learn</button>
+        <button :class="{active: $store.ui.activeView==='settings'}"   @click="Router.go('settings')">Settings</button>
+      </nav>
+
+      <div class="top-bar__spacer"></div>
+
+      <!-- Quick trade button (desktop) -->
+      <button class="btn btn-primary btn-sm hide-mobile"
+              @click="Router.go('trade')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New Trade
+      </button>
+    </header>
+
+    <!-- Toast notifications -->
+    <div class="toast-container" role="status" aria-live="polite">
+      <div x-show="$store.ui.toast"
+           x-transition:enter="fade-enter-active"
+           x-transition:enter-start="fade-enter-from"
+           x-transition:leave="fade-leave-active"
+           x-transition:leave-end="fade-leave-to"
+           :class="'toast ' + ($store.ui.toast?.type ?? 'info')"
+           x-text="$store.ui.toast?.message">
+      </div>
+    </div>
+
+    <!-- Main content: view router -->
+    <main class="main-content" id="main-content" role="main">
+      <div id="view-container"
+           x-data="ViewLoader"
+           x-init="init()"
+           @hashchange.window="navigate()">
+        <div x-html="currentView"></div>
+      </div>
+      <p class="app-version-stamp" x-text="'v' + CONFIG.appVersion"></p>
+    </main>
+
+    <!-- Bottom navigation (mobile) -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main">
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='dashboard'}"
+              @click="Router.go('dashboard')"
+              aria-label="Dashboard">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Home
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='trade'}"
+              @click="Router.go('trade')"
+              aria-label="Trade">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        Trade
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='watchlist'}"
+              @click="Router.go('watchlist')"
+              aria-label="Watchlist">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Watch
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='analytics'}"
+              @click="Router.go('analytics')"
+              aria-label="Analytics">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Analytics
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='settings'}"
+              @click="Router.go('settings')"
+              aria-label="Settings">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42m12.72-12.72 1.42-1.42"/>
+        </svg>
+        Settings
+      </button>
+    </nav>
+  </div>
+
+  <!-- ── View loader Alpine component ─────────────────────────────────── -->
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('ViewLoader', () => ({
+        currentView: '',
+        _cache: {},
+
+        async init() {
+          await this.navigate();
+        },
+
+        async navigate() {
+          const { view, id } = Router.parse();
+          Alpine.store('ui').activeView  = view;
+          Alpine.store('ui').routeParams = id ? { id } : {};
+
+          const key = `views/${view}.html`;
+          if (!this._cache[key]) {
+            try {
+              const r = await fetch(key + '?v=' + CONFIG.appVersion);
+              if (r.ok) {
+                this._cache[key] = await r.text();
+              } else {
+                this._cache[key] = `<div class="empty-state"><p>View not found: ${view}</p></div>`;
+              }
+            } catch {
+              this._cache[key] = `<div class="empty-state"><p>Could not load view.</p></div>`;
+            }
+          }
+          this.currentView = this._cache[key];
+
+          await this.$nextTick();
+          document.dispatchEvent(new CustomEvent('view-loaded', { detail: { view, id } }));
+        },
+      }));
+    });
+  </script>
+
+</body>
+</html>
