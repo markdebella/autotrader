@@ -160,15 +160,15 @@
   </template>
 
   <!-- "Explain this" modal (Phase 1 contextual education) -->
-  <template x-if="explain.open">
+  <template x-if="explainOpen">
     <div class="modal-backdrop" @click.self="closeExplain()" @keydown.escape.window="closeExplain()">
       <div class="modal">
-        <div class="modal__title" x-text="explain.data.title"></div>
+        <div class="modal__title" x-text="explainData.title"></div>
         <div class="modal__body">
-          <p x-text="explain.data.context"></p>
-          <template x-if="explain.data.glossary && explain.data.glossary.length">
+          <p x-text="explainData.context"></p>
+          <template x-if="explainData.glossary && explainData.glossary.length">
             <div class="explain-glossary">
-              <template x-for="g in explain.data.glossary" :key="g.term">
+              <template x-for="g in explainData.glossary" :key="g.term">
                 <div class="explain-glossary__item">
                   <span class="explain-glossary__term" x-text="g.term"></span>
                   <span class="explain-glossary__def" x-text="g.definition"></span>

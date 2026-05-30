@@ -194,18 +194,25 @@
 
 /* ── "Explain this" affordance (Phase 1 education) ──────────────────────────── */
 .explain-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  padding: 0;
-  margin-left: 5px;
+  padding: 2px;
+  margin-left: 4px;
   color: var(--text-muted);
   cursor: pointer;
   vertical-align: middle;
-  line-height: 0;
 }
 /* Labels like "Portfolio Value" are uppercased/letter-spaced; reset so the tooltip
-   text inside the trigger renders as normal sentence case. */
-.explain-icon .tooltip { text-transform: none; letter-spacing: normal; }
+   text inside the trigger renders as normal sentence case with readable line spacing.
+   (Without an explicit line-height the wrapped tooltip lines collapse onto each other.) */
+.explain-icon .tooltip {
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.45;
+}
 .explain-icon:hover { color: var(--accent); }
 .explain-glossary {
   margin-top: var(--space-md);
