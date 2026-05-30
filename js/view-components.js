@@ -80,6 +80,7 @@ function Settings() {
     showSecret: false,
     testing: false,
     connectionStatus: null,
+    riskLimits: { ...CONFIG.defaultRiskLimits },
 
     get driveFolderId() { return Drive.getFolderId(); },
 
@@ -89,6 +90,8 @@ function Settings() {
         this.apiKeyId = settings.brokerage.apiKeyId || '';
         this.apiSecretKey = settings.brokerage.apiSecretKey || '';
         this.paperMode = settings.brokerage.paperMode;
+        // Merge over defaults so existing users get any newly-added limit fields.
+        this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
       }
     },
 
@@ -149,6 +152,14 @@ function Settings() {
       if (Alpaca.isConfigured()) {
         await App.refreshPortfolio();
       }
+    },
+
+    async saveRiskLimits() {
+      const settings = Alpine.store('data').settings;
+      settings.riskLimits = { ...this.riskLimits };
+      Alpine.store('data').settings = { ...settings };
+      await Drive.saveSettings(settings);
+      Toast.success('Risk limits saved.');
     },
 
     async exportData() {

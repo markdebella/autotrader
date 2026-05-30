@@ -100,6 +100,51 @@
     </div>
   </div>
 
+  <!-- Risk Limits -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Risk Limits</div>
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:var(--space-sm)">
+      Hard guardrails applied to every trade. The app refuses any action that would
+      break these. Defaults are sized for a small (~$100) starter account — raise them
+      as your budget grows.
+    </p>
+
+    <div style="margin-top:var(--space-md)">
+      <div class="form-group">
+        <label class="form-label">Account budget ($)</label>
+        <input type="number" min="0" step="1" class="form-input" x-model.number="riskLimits.accountBudget">
+        <div class="form-hint">Total capital you're allocating to this app.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max per trade ($)</label>
+        <input type="number" min="0" step="1" class="form-input" x-model.number="riskLimits.maxOrderDollars">
+        <div class="form-hint">Hard cap on a single buy or sell. Keeps trades miniscule.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max per position ($)</label>
+        <input type="number" min="0" step="1" class="form-input" x-model.number="riskLimits.maxPositionDollars">
+        <div class="form-hint">Hard cap on total dollars held in one stock.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max per position (% of budget)</label>
+        <input type="number" min="0" max="100" step="1" class="form-input" x-model.number="riskLimits.maxPositionPct">
+        <div class="form-hint">Whichever is smaller — dollars or percent — wins.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Daily loss limit ($)</label>
+        <input type="number" min="0" step="1" class="form-input" x-model.number="riskLimits.dailyLossLimit">
+        <div class="form-hint">Stop trading for the rest of the day after losing this much.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max trades per day</label>
+        <input type="number" min="0" step="1" class="form-input" x-model.number="riskLimits.maxTradesPerDay">
+        <div class="form-hint">Low frequency also stays within the PDT day-trade limit.</div>
+      </div>
+
+      <button class="btn btn-primary btn-sm" @click="saveRiskLimits()">Save Risk Limits</button>
+    </div>
+  </div>
+
   <!-- Data management -->
   <div class="card">
     <div class="card__title">Data Management</div>

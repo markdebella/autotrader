@@ -3,7 +3,7 @@
 const CONFIG = {
   clientId: '155253754677-eec50p196kbcv4i265su1ufpsl8bkg82.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.04.14.01',
+  appVersion: '2026.05.30.01',
 
   // Alpaca API endpoints
   alpaca: {
@@ -12,12 +12,16 @@ const CONFIG = {
     dataBaseUrl:  'https://data.alpaca.markets',
   },
 
-  // Default risk limits
+  // Default risk limits — sized for a small starter account (~$100).
+  // These are just DEFAULTS for new users; change them anytime in the app
+  // under Settings → Risk Limits (no code edit needed).
   defaultRiskLimits: {
-    maxPositionPct:   10,     // max % of portfolio in one stock
-    maxPositionDollars: 5000, // hard cap per position
-    dailyLossLimit:   500,    // stop trading after this much loss in a day
-    maxTradesPerDay:  10,     // max orders per day
+    accountBudget:      100,  // total capital you're allocating to this app
+    maxOrderDollars:    10,   // hard cap on a SINGLE trade — keeps trades miniscule
+    maxPositionDollars: 25,   // hard cap on total $ held in one stock
+    maxPositionPct:     25,   // ...or this % of account budget (whichever is smaller)
+    dailyLossLimit:     10,   // stop trading after losing this much in one day
+    maxTradesPerDay:    3,    // low frequency; also stays within the PDT day-trade limit
   },
 
   // Default watchlist for new users
