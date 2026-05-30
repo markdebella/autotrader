@@ -29,11 +29,7 @@ function Dashboard() {
       return manifest.trades.slice(0, 8);
     },
 
-    // "Explain this" modal (Phase 1 contextual education).
-    // Flat reactive props (not a nested object) so Alpine reliably re-renders the modal.
-    explainOpen: false,
-    explainData: { title: '', context: '', glossary: [] },
-
+    // "Explain this" modal — writes to the ui store; the modal renders in the app shell.
     openMetricExplain(key) {
       const data = Explain.metric(key, {
         account:    this.account,
@@ -42,15 +38,20 @@ function Dashboard() {
         openOrders: this.openOrders,
         dailyPnl:   this.dailyPnl,
       });
-      if (data) { this.explainData = data; this.explainOpen = true; }
+      console.log('[explain] metric click:', key, '→', data ? 'opening' : 'no data');
+      if (data) {
+        const ui = Alpine.store('ui');
+        ui.explainData = data;
+        ui.explainOpen = true;
+      }
     },
 
     openPositionExplain(pos) {
-      this.explainData = Explain.position(pos);
-      this.explainOpen = true;
+      console.log('[explain] position click:', pos?.symbol);
+      const ui = Alpine.store('ui');
+      ui.explainData = Explain.position(pos);
+      ui.explainOpen = true;
     },
-
-    closeExplain() { this.explainOpen = false; },
 
     init() {
       // Auto-refresh portfolio on view load

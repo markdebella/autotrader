@@ -49,6 +49,10 @@ document.addEventListener('alpine:init', () => {
     toast: null,
     toastTimer: null,
     paperMode: true,
+    // "Explain this" modal (Phase 1 education). Lives in the store so the modal can
+    // render in the always-mounted app shell, independent of the current view.
+    explainOpen: false,
+    explainData: { title: '', context: '', glossary: [] },
   });
 
 });

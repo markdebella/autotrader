@@ -35,8 +35,8 @@
   <script src="js/seed.js?v=1.0"></script>
   <script src="js/alpaca.js?v=1.1"></script>
   <script src="js/explain.js?v=1.0"></script>
-  <script src="js/view-components.js?v=1.3"></script>
-  <script src="js/app.js?v=1.1"></script>
+  <script src="js/view-components.js?v=1.4"></script>
+  <script src="js/app.js?v=1.2"></script>
 </head>
 <body x-data="{}" x-cloak>
 
@@ -128,6 +128,32 @@
            x-text="$store.ui.toast?.message">
       </div>
     </div>
+
+    <!-- "Explain this" modal (Phase 1 education). In the shell so it always renders
+         above whatever view is loaded; driven by the ui store. -->
+    <template x-if="$store.ui.explainOpen">
+      <div class="modal-backdrop" @click.self="$store.ui.explainOpen = false" @keydown.escape.window="$store.ui.explainOpen = false">
+        <div class="modal">
+          <div class="modal__title" x-text="$store.ui.explainData.title"></div>
+          <div class="modal__body">
+            <p x-text="$store.ui.explainData.context"></p>
+            <template x-if="$store.ui.explainData.glossary && $store.ui.explainData.glossary.length">
+              <div class="explain-glossary">
+                <template x-for="g in $store.ui.explainData.glossary" :key="g.term">
+                  <div class="explain-glossary__item">
+                    <span class="explain-glossary__term" x-text="g.term"></span>
+                    <span class="explain-glossary__def" x-text="g.definition"></span>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+          <div class="modal__actions">
+            <button class="btn btn-secondary btn-sm" @click="$store.ui.explainOpen = false">Got it</button>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- Main content: view router -->
     <main class="main-content" id="main-content" role="main">
