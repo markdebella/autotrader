@@ -298,6 +298,9 @@ function RecommendationsView() {
       }
     },
 
-    init() {},
+    init() {
+      // Resolve friendly names for any recommended tickers not already known.
+      Company.ensure((Alpine.store('data').recommendations || []).map(r => r.symbol));
+    },
   };
 }

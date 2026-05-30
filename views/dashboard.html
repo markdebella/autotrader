@@ -114,6 +114,7 @@
           <div class="position-card__main">
             <div class="position-card__symbol">
               <span x-text="pos.symbol"></span>
+              <span class="company-name" x-show="Company.name(pos.symbol)" x-text="Company.name(pos.symbol)"></span>
               <button type="button" class="explain-icon tooltip-trigger" @click="openPositionExplain(pos)" :aria-label="'Explain your ' + pos.symbol + ' position'">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 <span class="tooltip" x-text="Explain.positionShort"></span>
@@ -139,7 +140,10 @@
             <div class="order-card">
               <span class="order-card__side" :class="order.side" x-text="order.side"></span>
               <div class="order-card__main">
-                <div class="order-card__symbol" x-text="order.symbol"></div>
+                <div class="order-card__symbol">
+                  <span x-text="order.symbol"></span>
+                  <span class="company-name" x-show="Company.name(order.symbol)" x-text="Company.name(order.symbol)"></span>
+                </div>
                 <div class="order-card__details" x-text="order.qty + ' shares • ' + order.type + ' • ' + order.time_in_force.toUpperCase()"></div>
               </div>
               <span class="order-card__status" :class="order.status" x-text="order.status"></span>
@@ -156,7 +160,10 @@
             <div class="order-card">
               <span class="order-card__side" :class="trade.side" x-text="trade.side"></span>
               <div class="order-card__main">
-                <div class="order-card__symbol" x-text="trade.symbol"></div>
+                <div class="order-card__symbol">
+                  <span x-text="trade.symbol"></span>
+                  <span class="company-name" x-show="Company.name(trade.symbol)" x-text="Company.name(trade.symbol)"></span>
+                </div>
                 <div class="order-card__details" x-text="trade.qty + ' shares • ' + Utils.formatDateTime(trade.submittedAt)"></div>
               </div>
               <span class="order-card__status" :class="trade.status" x-text="trade.status"></span>

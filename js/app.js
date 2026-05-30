@@ -210,6 +210,12 @@ const App = {
     } else {
       portfolio.error = null;
     }
+
+    // Resolve friendly names for any held/ordered tickers (fire-and-forget).
+    const symbols = new Set();
+    (portfolio.positions || []).forEach(p => symbols.add(p.symbol));
+    (portfolio.orders || []).forEach(o => symbols.add(o.symbol));
+    Company.ensure([...symbols]);
   },
 
 };

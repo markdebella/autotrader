@@ -79,6 +79,12 @@ const Alpaca = (() => {
       return await request('GET', `/v2/positions/${encodeURIComponent(symbol)}`);
     },
 
+    // ── Assets (read-only — used for friendly company names) ─────────────────────
+
+    async getAsset(symbol) {
+      return await request('GET', `/v2/assets/${encodeURIComponent(symbol)}`);
+    },
+
     // ── Orders (read-only) ──────────────────────────────────────────────────────
 
     async getOrders(params = {}) {

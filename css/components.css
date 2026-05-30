@@ -288,6 +288,14 @@
   word-break: break-word;
 }
 .rec-denied { font-size: 0.82rem; color: var(--text-muted); }
+
+/* Friendly company name shown next to a ticker symbol. */
+.company-name {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
 .explain-glossary__def {
   display: block;
   margin-top: 2px;

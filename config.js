@@ -3,7 +3,7 @@
 const CONFIG = {
   clientId: '686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.05.30.13',
+  appVersion: '2026.05.30.14',
 
   // Alpaca API endpoints
   alpaca: {
@@ -26,6 +26,24 @@ const CONFIG = {
 
   // Default watchlist for new users
   defaultWatchlist: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'],
+
+  // Friendly company names shown next to tickers. Curated for clean display; any
+  // symbol not listed here is looked up from Alpaca's read-only assets API and cached.
+  companyNames: {
+    AAPL: 'Apple', MSFT: 'Microsoft', GOOGL: 'Alphabet (Google)', GOOG: 'Alphabet (Google)',
+    AMZN: 'Amazon', TSLA: 'Tesla', META: 'Meta', NVDA: 'NVIDIA', NFLX: 'Netflix',
+    AMD: 'AMD', INTC: 'Intel', IBM: 'IBM', ORCL: 'Oracle', CRM: 'Salesforce',
+    ADBE: 'Adobe', CSCO: 'Cisco', QCOM: 'Qualcomm', TXN: 'Texas Instruments',
+    AVGO: 'Broadcom', PYPL: 'PayPal', UBER: 'Uber', ABNB: 'Airbnb', SHOP: 'Shopify',
+    COIN: 'Coinbase', PLTR: 'Palantir', BABA: 'Alibaba', DIS: 'Disney', NKE: 'Nike',
+    SBUX: 'Starbucks', MCD: "McDonald's", KO: 'Coca-Cola', PEP: 'PepsiCo',
+    WMT: 'Walmart', COST: 'Costco', TGT: 'Target', HD: 'Home Depot',
+    JPM: 'JPMorgan Chase', BAC: 'Bank of America', WFC: 'Wells Fargo', GS: 'Goldman Sachs',
+    V: 'Visa', MA: 'Mastercard', JNJ: 'Johnson & Johnson', PFE: 'Pfizer',
+    UNH: 'UnitedHealth', XOM: 'ExxonMobil', CVX: 'Chevron', BA: 'Boeing', F: 'Ford',
+    GM: 'General Motors', T: 'AT&T', VZ: 'Verizon',
+    SPY: 'S&P 500 ETF', QQQ: 'Nasdaq-100 ETF', VOO: 'Vanguard S&P 500', VTI: 'Vanguard Total Market',
+  },
 
   // Glossary terms for education view
   glossary: [

@@ -37,6 +37,7 @@
         <div style="display:flex;align-items:center;flex-wrap:wrap">
           <span class="rec-side" :class="rec.side" x-text="rec.side.toUpperCase()"></span>
           <span class="rec-symbol" x-text="rec.symbol"></span>
+          <span class="company-name" x-show="Company.name(rec.symbol)" x-text="Company.name(rec.symbol)"></span>
           <span class="rec-size" x-text="sizeLabel(rec)"></span>
           <span x-show="rec.orderType === 'limit' && rec.limitPrice != null"
                 class="rec-size" x-text="'· limit ' + Utils.formatCurrency(rec.limitPrice)"></span>
