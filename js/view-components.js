@@ -15,6 +15,7 @@ function Dashboard() {
     get openOrders() { return Alpine.store('portfolio').orders || []; },
     get clock()      { return Alpine.store('portfolio').clock; },
     get marketOpen() { return this.clock?.is_open ?? false; },
+    get loadError()  { return Alpine.store('portfolio').error; },
 
     get dailyPnl() {
       if (!this.account) return 0;
@@ -60,7 +61,7 @@ function Dashboard() {
 
     async refresh() {
       await App.refreshPortfolio();
-      Toast.success('Portfolio refreshed.');
+      if (!this.loadError) Toast.success('Portfolio refreshed.');
     },
   };
 }

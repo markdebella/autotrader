@@ -40,6 +40,7 @@ document.addEventListener('alpine:init', () => {
     history: null,          // Portfolio history for chart
     clock: null,            // Market clock
     lastUpdated: null,
+    error: null,            // human-readable message if the last refresh partially failed
   });
 
   Alpine.store('ui', {
@@ -163,26 +164,39 @@ const App = {
     }
   },
 
-  /** Refresh portfolio data from Alpaca */
+  /**
+   * Refresh portfolio data from Alpaca.
+   * Uses allSettled so one failing endpoint doesn't blank the whole dashboard —
+   * each piece that succeeds is shown, and we report exactly which ones failed.
+   */
   async refreshPortfolio() {
     if (!Alpaca.isConfigured()) return;
 
     const portfolio = Alpine.store('portfolio');
-    try {
-      const [account, positions, orders, clock] = await Promise.all([
-        Alpaca.getAccount(),
-        Alpaca.getPositions(),
-        Alpaca.getOrders({ status: 'open' }),
-        Alpaca.getClock(),
-      ]);
-      portfolio.account   = account;
-      portfolio.positions = positions;
-      portfolio.orders    = orders;
-      portfolio.clock     = clock;
-      portfolio.lastUpdated = Utils.nowISO();
-    } catch (err) {
-      console.error('Portfolio refresh error:', err);
-      Toast.error('Could not fetch portfolio data from Alpaca.');
+    const calls = [
+      { key: 'account',   label: 'account',      fn: () => Alpaca.getAccount() },
+      { key: 'positions', label: 'positions',    fn: () => Alpaca.getPositions() },
+      { key: 'orders',    label: 'open orders',  fn: () => Alpaca.getOrders({ status: 'open' }) },
+      { key: 'clock',     label: 'market clock', fn: () => Alpaca.getClock() },
+    ];
+
+    const results = await Promise.allSettled(calls.map(c => c.fn()));
+    const failed = [];
+    results.forEach((res, i) => {
+      if (res.status === 'fulfilled') {
+        portfolio[calls[i].key] = res.value;
+      } else {
+        console.error(`Alpaca ${calls[i].key} fetch failed:`, res.reason);
+        failed.push(calls[i].label);
+      }
+    });
+
+    portfolio.lastUpdated = Utils.nowISO();
+    if (failed.length) {
+      portfolio.error = `Couldn't load ${failed.join(', ')} from Alpaca.`;
+      Toast.error(portfolio.error);
+    } else {
+      portfolio.error = null;
     }
   },
 

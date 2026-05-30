@@ -16,6 +16,14 @@
   <!-- Connected state -->
   <template x-if="alpacaConnected">
     <div>
+      <!-- Partial-load error banner (some Alpaca calls failed) -->
+      <template x-if="loadError">
+        <div class="card" style="border-color:var(--danger);margin-bottom:var(--space-md);display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);flex-wrap:wrap">
+          <span style="color:var(--loss);font-size:0.85rem" x-text="loadError"></span>
+          <button class="btn btn-secondary btn-sm" @click="refresh()">Retry</button>
+        </div>
+      </template>
+
       <!-- Portfolio value + P&L -->
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="display:flex;align-items:baseline;gap:var(--space-md);flex-wrap:wrap">
