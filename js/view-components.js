@@ -215,6 +215,15 @@ function Education() {
       );
     },
 
-    init() {},
+    init() {
+      // Arrived here from an "Explain" modal glossary link? Open the glossary tab and
+      // surface that term (filter to it), then clear the one-shot focus.
+      const focus = Alpine.store('ui').glossaryFocus;
+      if (focus) {
+        this.tab = 'glossary';
+        this.searchQuery = focus;
+        Alpine.store('ui').glossaryFocus = '';
+      }
+    },
   };
 }

@@ -13,7 +13,7 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/main.css?v=1.0">
-  <link rel="stylesheet" href="css/components.css?v=1.3">
+  <link rel="stylesheet" href="css/components.css?v=1.4">
   <link rel="stylesheet" href="css/charts.css?v=1.0">
 
   <!-- Alpine.js -->
@@ -35,8 +35,8 @@
   <script src="js/seed.js?v=1.0"></script>
   <script src="js/alpaca.js?v=1.1"></script>
   <script src="js/explain.js?v=1.0"></script>
-  <script src="js/view-components.js?v=1.5"></script>
-  <script src="js/app.js?v=1.2"></script>
+  <script src="js/view-components.js?v=1.6"></script>
+  <script src="js/app.js?v=1.3"></script>
 </head>
 <body x-data="{}" x-cloak>
 
@@ -141,7 +141,12 @@
               <div class="explain-glossary">
                 <template x-for="g in $store.ui.explainData.glossary" :key="g.term">
                   <div class="explain-glossary__item">
-                    <span class="explain-glossary__term" x-text="g.term"></span>
+                    <button type="button" class="explain-glossary__link"
+                            @click="$store.ui.glossaryFocus = g.term; $store.ui.explainOpen = false; Router.go('education')"
+                            :aria-label="'Learn more about ' + g.term + ' in the glossary'">
+                      <span x-text="g.term"></span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
                     <span class="explain-glossary__def" x-text="g.definition"></span>
                   </div>
                 </template>

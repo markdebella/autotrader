@@ -228,6 +228,21 @@
   color: var(--text-primary);
   font-size: 0.82rem;
 }
+/* Clickable glossary term in the Explain modal — links to Education → Glossary. */
+.explain-glossary__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+.explain-glossary__link:hover { text-decoration: underline; }
+.explain-glossary__link svg { opacity: 0.7; }
 .explain-glossary__def {
   display: block;
   margin-top: 2px;

@@ -53,6 +53,9 @@ document.addEventListener('alpine:init', () => {
     // render in the always-mounted app shell, independent of the current view.
     explainOpen: false,
     explainData: { title: '', context: '', glossary: [] },
+    // A glossary term to surface when the Education view next loads (set when the user
+    // clicks a term in the Explain modal). The Education component reads and clears it.
+    glossaryFocus: '',
   });
 
 });
