@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git fetch:*)",
+      "Bash(python -m http.server:*)",
+      "Bash(npx serve:*)",
+
+      "PowerShell(git status:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git add:*)",
+      "PowerShell(git restore:*)",
+      "PowerShell(git stash:*)",
+      "PowerShell(git fetch:*)",
+      "PowerShell(python -m http.server:*)",
+      "PowerShell(npx serve:*)",
+      "PowerShell(Get-ChildItem:*)",
+      "PowerShell(Test-Path:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(rm -rf:*)",
+      "PowerShell(git push:*)",
+      "PowerShell(git reset --hard:*)",
+      "PowerShell(git clean:*)",
+      "PowerShell(Remove-Item -Recurse*)"
+    ]
+  }
+}
