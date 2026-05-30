@@ -93,7 +93,14 @@ const Auth = (() => {
         if (localStorage.getItem('at_signed_in')) {
           google.accounts.id.prompt((notification) => {
             if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              tokenClient.requestAccessToken({ prompt: '' });
+              // One Tap is unavailable here — commonly because the browser's tracking
+              // prevention blocked Google's storage, or because One Tap doesn't support
+              // http://127.0.0.1 origins. Do NOT fall back to an automatic
+              // requestAccessToken: a popup not triggered by a user gesture gets blocked
+              // by the browser, producing console errors and signing nobody in. Instead
+              // fall through to the Sign In button — the user's click supplies the
+              // gesture the OAuth popup needs (this is the path that works).
+              Alpine.store('auth').status = 'signed_out';
             }
           });
         }

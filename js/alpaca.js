@@ -25,10 +25,16 @@ const Alpaca = (() => {
       headers: {
         'APCA-API-KEY-ID':     apiKeyId,
         'APCA-API-SECRET-KEY': apiSecret,
-        'Content-Type':        'application/json',
       },
     };
-    if (body) opts.body = JSON.stringify(body);
+    // Only set Content-Type when there's actually a body. A custom Content-Type on a
+    // bodyless GET forces a CORS preflight that Alpaca's data endpoints (e.g. /v2/clock)
+    // reject ("content-type not allowed by Access-Control-Allow-Headers"), which blanks
+    // the whole dashboard. This client is read-only, so body is always null in practice.
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
 
     const response = await fetch(url.toString(), opts);
     if (!response.ok) {
