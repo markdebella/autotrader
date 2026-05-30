@@ -38,7 +38,6 @@ function Dashboard() {
         openOrders: this.openOrders,
         dailyPnl:   this.dailyPnl,
       });
-      console.log('[explain] metric click:', key, '→', data ? 'opening' : 'no data');
       if (data) {
         const ui = Alpine.store('ui');
         ui.explainData = data;
@@ -47,7 +46,6 @@ function Dashboard() {
     },
 
     openPositionExplain(pos) {
-      console.log('[explain] position click:', pos?.symbol);
       const ui = Alpine.store('ui');
       ui.explainData = Explain.position(pos);
       ui.explainOpen = true;

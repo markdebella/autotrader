@@ -10,7 +10,8 @@
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition);
   position: relative;
-  overflow: hidden;
+  /* No overflow:hidden — it would clip the "Explain" hover tooltip. The accent bar
+     below uses the card's corner radius so it still follows the rounded edge. */
 }
 .position-card::before {
   content: '';
@@ -18,7 +19,7 @@
   top: 0; left: 0;
   width: 3px;
   height: 100%;
-  border-radius: 3px 0 0 3px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 .position-card.gain::before { background: var(--gain); }
 .position-card.loss::before { background: var(--loss); }
@@ -186,7 +187,7 @@
   color: var(--text-secondary);
   white-space: normal;
   width: 240px;
-  z-index: 50;
+  z-index: 400;   /* above the sticky header (z-index:100) so top tooltips aren't covered; below the modal (500) */
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   margin-bottom: 6px;
 }
