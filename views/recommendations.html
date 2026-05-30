@@ -9,10 +9,12 @@
   <div class="card" style="margin-bottom:var(--space-md)">
     <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5">
       These are trade ideas for <strong style="color:var(--text-primary)">you</strong> to approve or deny —
-      nothing trades automatically. Approving records your decision and gives you a command to run in
-      <strong style="color:var(--text-primary)">Claude Code</strong>, which places the order via the Alpaca
-      MCP server (<strong style="color:var(--text-primary)">paper mode</strong> by default). Each idea shows
-      how it fits within your <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.
+      nothing trades automatically. The dashboard is <strong style="color:var(--text-primary)">read-only by
+      design</strong>, so rather than placing orders itself, approving <strong style="color:var(--text-primary)">copies
+      a ready-to-run command</strong> for <strong style="color:var(--text-primary)">Claude Code</strong>, which
+      executes it via the Alpaca MCP server (<strong style="color:var(--text-primary)">paper mode</strong> by
+      default). Each idea shows how it fits within your
+      <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.
     </div>
   </div>
 
@@ -63,7 +65,7 @@
       <!-- Approved: show the MCP command to run -->
       <template x-if="rec.status === 'approved'">
         <div class="rec-command">
-          <div class="rec-command__label">Run this in Claude Code to place the order:</div>
+          <div class="rec-command__label">Paste into Claude Code to place the order — runs via the Alpaca MCP server (paper mode):</div>
           <div class="rec-command__row">
             <code x-text="mcpCommand(rec)"></code>
             <button class="btn btn-secondary btn-sm" @click="copyCommand(rec)">Copy</button>

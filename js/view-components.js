@@ -252,10 +252,15 @@ function RecommendationsView() {
 
     async approve(rec) {
       if (!rec.guardrail?.passed) return;       // never approve a limit-breaching idea
+      // Copy the command FIRST, while the click's user-activation is still valid for the
+      // clipboard API (it can lapse after an await on the Drive save).
+      const copied = await this._copyText(this.mcpCommand(rec));
       rec.status = 'approved';
       rec.decidedAt = Utils.nowISO();
       await this._persist();
-      Toast.success('Approved — copy the command into Claude Code to place it.');
+      Toast.success(copied
+        ? 'Approved & command copied — paste it into Claude Code to place the order.'
+        : 'Approved — copy the command below and run it in Claude Code.');
     },
 
     async deny(rec) {
@@ -266,12 +271,14 @@ function RecommendationsView() {
     },
 
     async copyCommand(rec) {
-      try {
-        await navigator.clipboard.writeText(this.mcpCommand(rec));
-        Toast.success('Command copied — paste it into Claude Code.');
-      } catch {
-        Toast.error('Could not copy automatically — select the text and copy it.');
-      }
+      const ok = await this._copyText(this.mcpCommand(rec));
+      if (ok) Toast.success('Command copied — paste it into Claude Code.');
+      else Toast.error('Could not copy automatically — select the text and copy it.');
+    },
+
+    async _copyText(text) {
+      try { await navigator.clipboard.writeText(text); return true; }
+      catch { return false; }
     },
 
     /** Persist the current list to Drive and re-trigger Alpine reactivity. */
