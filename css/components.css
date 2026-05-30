@@ -256,7 +256,7 @@
 .rec-side.buy  { background: var(--gain-bg); color: var(--gain); }
 .rec-side.sell { background: var(--loss-bg); color: var(--loss); }
 .rec-symbol { font-weight: 800; font-size: 1.05rem; margin: 0 6px; color: var(--text-primary); }
-.rec-size { color: var(--text-secondary); font-size: 0.85rem; }
+.rec-size { color: var(--text-secondary); font-size: 0.85rem; margin-left: 6px; }
 .rec-badge {
   font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--text-muted); border: 1px solid var(--border);
