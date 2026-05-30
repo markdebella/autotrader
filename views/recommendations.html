@@ -1,0 +1,82 @@
+<!-- Recommendations View (Phase 2: Recommend + Approve) -->
+<div x-data="RecommendationsView()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Trade Ideas</h1>
+  </div>
+
+  <!-- How it works -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5">
+      These are trade ideas for <strong style="color:var(--text-primary)">you</strong> to approve or deny —
+      nothing trades automatically. Approving records your decision and gives you a command to run in
+      <strong style="color:var(--text-primary)">Claude Code</strong>, which places the order via the Alpaca
+      MCP server (<strong style="color:var(--text-primary)">paper mode</strong> by default). Each idea shows
+      how it fits within your <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <template x-if="recs.length === 0">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>
+      </svg>
+      <p style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px">No trade ideas yet</p>
+      <p>When Claude analyzes your portfolio (via the Alpaca MCP server in Claude Code), it writes recommendations here for you to approve or deny.</p>
+    </div>
+  </template>
+
+  <!-- Recommendation cards -->
+  <template x-for="rec in recs" :key="rec.id">
+    <div class="card rec-card" style="margin-bottom:var(--space-sm)">
+
+      <div class="rec-card__head">
+        <div style="display:flex;align-items:center;flex-wrap:wrap">
+          <span class="rec-side" :class="rec.side" x-text="rec.side.toUpperCase()"></span>
+          <span class="rec-symbol" x-text="rec.symbol"></span>
+          <span class="rec-size" x-text="sizeLabel(rec)"></span>
+          <span x-show="rec.orderType === 'limit' && rec.limitPrice != null"
+                class="rec-size" x-text="'· limit ' + Utils.formatCurrency(rec.limitPrice)"></span>
+          <span x-show="rec.source === 'sample'" class="rec-badge">Sample</span>
+        </div>
+        <span class="rec-status" :class="rec.status" x-text="rec.status"></span>
+      </div>
+
+      <p class="rec-why" x-text="rec.reasoning"></p>
+
+      <!-- Guardrail check -->
+      <div class="rec-guardrail" :class="rec.guardrail.passed ? 'ok' : 'warn'">
+        <strong x-text="rec.guardrail.passed ? 'Within your risk limits' : 'Exceeds a risk limit'"></strong>
+        <span x-text="rec.guardrail.notes"></span>
+      </div>
+
+      <!-- Pending: approve / deny -->
+      <template x-if="rec.status === 'pending'">
+        <div class="rec-actions">
+          <button class="btn btn-primary btn-sm" @click="approve(rec)" :disabled="!rec.guardrail.passed"
+                  :title="rec.guardrail.passed ? '' : 'Cannot approve — exceeds a risk limit'">Approve</button>
+          <button class="btn btn-secondary btn-sm" @click="deny(rec)">Deny</button>
+        </div>
+      </template>
+
+      <!-- Approved: show the MCP command to run -->
+      <template x-if="rec.status === 'approved'">
+        <div class="rec-command">
+          <div class="rec-command__label">Run this in Claude Code to place the order:</div>
+          <div class="rec-command__row">
+            <code x-text="mcpCommand(rec)"></code>
+            <button class="btn btn-secondary btn-sm" @click="copyCommand(rec)">Copy</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Denied -->
+      <template x-if="rec.status === 'denied'">
+        <div class="rec-denied">You denied this idea.</div>
+      </template>
+
+    </div>
+  </template>
+
+</div>

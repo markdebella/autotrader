@@ -30,13 +30,14 @@
   <script src="config.js?v=1.0"></script>
   <script src="js/utils.js?v=1.0"></script>
   <script src="js/auth.js?v=1.2"></script>
-  <script src="js/drive.js?v=1.0"></script>
+  <script src="js/drive.js?v=1.1"></script>
   <script src="js/manifest.js?v=1.0"></script>
   <script src="js/seed.js?v=1.0"></script>
   <script src="js/alpaca.js?v=1.1"></script>
   <script src="js/explain.js?v=1.0"></script>
-  <script src="js/view-components.js?v=1.7"></script>
-  <script src="js/app.js?v=1.4"></script>
+  <script src="js/recommendations.js?v=1.0"></script>
+  <script src="js/view-components.js?v=1.8"></script>
+  <script src="js/app.js?v=1.5"></script>
 </head>
 <body x-data="{}" x-cloak>
 
@@ -108,10 +109,11 @@
 
       <!-- Desktop nav -->
       <nav class="top-bar__desktop-nav" role="navigation" aria-label="Main">
-        <button :class="{active: $store.ui.activeView==='dashboard'}"  @click="Router.go('dashboard')">Dashboard</button>
-        <button :class="{active: $store.ui.activeView==='analytics'}"  @click="Router.go('analytics')">Analytics</button>
-        <button :class="{active: $store.ui.activeView==='education'}"  @click="Router.go('education')">Learn</button>
-        <button :class="{active: $store.ui.activeView==='settings'}"   @click="Router.go('settings')">Settings</button>
+        <button :class="{active: $store.ui.activeView==='dashboard'}"      @click="Router.go('dashboard')">Dashboard</button>
+        <button :class="{active: $store.ui.activeView==='recommendations'}" @click="Router.go('recommendations')">Ideas</button>
+        <button :class="{active: $store.ui.activeView==='analytics'}"      @click="Router.go('analytics')">Analytics</button>
+        <button :class="{active: $store.ui.activeView==='education'}"      @click="Router.go('education')">Learn</button>
+        <button :class="{active: $store.ui.activeView==='settings'}"       @click="Router.go('settings')">Settings</button>
       </nav>
 
       <div class="top-bar__spacer"></div>
@@ -182,6 +184,15 @@
           <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
         Home
+      </button>
+      <button class="bottom-nav__item"
+              :class="{active: $store.ui.activeView==='recommendations'}"
+              @click="Router.go('recommendations')"
+              aria-label="Ideas">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>
+        </svg>
+        Ideas
       </button>
       <button class="bottom-nav__item"
               :class="{active: $store.ui.activeView==='analytics'}"

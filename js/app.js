@@ -26,6 +26,7 @@ document.addEventListener('alpine:init', () => {
     manifest: null,         // { version, updatedAt, trades: [...], portfolioSnapshots: [...] }
     settings: null,         // user settings object
     allTrades: null,        // cached full trade list (used by analytics)
+    recommendations: [],    // Phase 2: trade ideas to approve/deny (from recommendations.json)
     alpacaConfigured: false,// reactive mirror of Alpaca.isConfigured() — drives the
                             // dashboard connected/empty state (the Alpaca module's own
                             // flag is not reactive, so views must read this instead)
@@ -142,6 +143,17 @@ const App = {
         const defaults = DefaultSettings.get();
         await Drive.saveSettings(defaults);
         data.settings = defaults;
+      }
+
+      // Load recommendations (Phase 2). Seed samples on first run so the feed is
+      // explorable before Claude writes real recommendations to Drive via the MCP server.
+      const recDoc = await Drive.loadRecommendations();
+      if (recDoc && Array.isArray(recDoc.recommendations)) {
+        data.recommendations = recDoc.recommendations;
+      } else {
+        const seeded = Recs.sampleDoc();
+        await Drive.saveRecommendations(seeded);
+        data.recommendations = seeded.recommendations;
       }
 
       // Initialize Alpaca if credentials exist

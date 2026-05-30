@@ -3,7 +3,7 @@
 const CONFIG = {
   clientId: '686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.05.30.11',
+  appVersion: '2026.05.30.12',
 
   // Alpaca API endpoints
   alpaca: {

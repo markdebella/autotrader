@@ -243,6 +243,51 @@
 }
 .explain-glossary__link:hover { text-decoration: underline; }
 .explain-glossary__link svg { opacity: 0.7; }
+
+/* ── Recommendations (Phase 2: Recommend + Approve) ─────────────────────────── */
+.rec-card__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-sm); margin-bottom: var(--space-sm); flex-wrap: wrap;
+}
+.rec-side {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
+  padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.rec-side.buy  { background: var(--gain-bg); color: var(--gain); }
+.rec-side.sell { background: var(--loss-bg); color: var(--loss); }
+.rec-symbol { font-weight: 800; font-size: 1.05rem; margin: 0 6px; color: var(--text-primary); }
+.rec-size { color: var(--text-secondary); font-size: 0.85rem; }
+.rec-badge {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 1px 5px; margin-left: 8px;
+}
+.rec-status { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.rec-status.pending  { color: var(--warning); }
+.rec-status.approved { color: var(--gain); }
+.rec-status.denied   { color: var(--text-muted); }
+.rec-why { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: var(--space-md); }
+.rec-guardrail {
+  font-size: 0.8rem; border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md);
+}
+.rec-guardrail strong { display: block; margin-bottom: 2px; }
+.rec-guardrail.ok   { background: var(--gain-bg); color: var(--text-secondary); border: 1px solid rgba(34,197,94,0.3); }
+.rec-guardrail.ok strong   { color: var(--gain); }
+.rec-guardrail.warn { background: var(--loss-bg); color: var(--text-secondary); border: 1px solid rgba(239,68,68,0.3); }
+.rec-guardrail.warn strong { color: var(--loss); }
+.rec-actions { display: flex; gap: var(--space-sm); }
+.rec-command {
+  background: var(--bg-base); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: var(--space-md);
+}
+.rec-command__label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: var(--space-xs); }
+.rec-command__row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.rec-command__row code {
+  flex: 1; min-width: 0; font-size: 0.85rem; color: var(--text-primary);
+  word-break: break-word;
+}
+.rec-denied { font-size: 0.82rem; color: var(--text-muted); }
 .explain-glossary__def {
   display: block;
   margin-top: 2px;

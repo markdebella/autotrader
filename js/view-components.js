@@ -228,3 +228,69 @@ function Education() {
     },
   };
 }
+
+// ── Recommendations (Phase 2: Recommend + Approve) ──────────────────────────────
+
+function RecommendationsView() {
+  return {
+    // Pending first, then most-recently-created. Reads the reactive data store.
+    get recs() {
+      const list = Alpine.store('data').recommendations || [];
+      const rank = { pending: 0, approved: 1, denied: 2 };
+      return [...list].sort((a, b) =>
+        (rank[a.status] - rank[b.status]) ||
+        (new Date(b.createdAt) - new Date(a.createdAt))
+      );
+    },
+
+    get pendingCount() {
+      return (Alpine.store('data').recommendations || []).filter(r => r.status === 'pending').length;
+    },
+
+    sizeLabel(rec)  { return Recs.sizeLabel(rec); },
+    mcpCommand(rec) { return Recs.mcpCommand(rec); },
+
+    async approve(rec) {
+      if (!rec.guardrail?.passed) return;       // never approve a limit-breaching idea
+      rec.status = 'approved';
+      rec.decidedAt = Utils.nowISO();
+      await this._persist();
+      Toast.success('Approved — copy the command into Claude Code to place it.');
+    },
+
+    async deny(rec) {
+      rec.status = 'denied';
+      rec.decidedAt = Utils.nowISO();
+      await this._persist();
+      Toast.info('Recommendation denied.');
+    },
+
+    async copyCommand(rec) {
+      try {
+        await navigator.clipboard.writeText(this.mcpCommand(rec));
+        Toast.success('Command copied — paste it into Claude Code.');
+      } catch {
+        Toast.error('Could not copy automatically — select the text and copy it.');
+      }
+    },
+
+    /** Persist the current list to Drive and re-trigger Alpine reactivity. */
+    async _persist() {
+      const data = Alpine.store('data');
+      const list = data.recommendations;
+      data.recommendations = [...list];
+      try {
+        await Drive.saveRecommendations({
+          version: Recs.SCHEMA_VERSION,
+          updatedAt: Utils.nowISO(),
+          recommendations: list,
+        });
+      } catch (err) {
+        console.error('Failed to save recommendations:', err);
+        Toast.error('Saved your decision locally, but could not sync to Drive.');
+      }
+    },
+
+    init() {},
+  };
+}

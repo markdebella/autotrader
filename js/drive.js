@@ -140,6 +140,24 @@ const Drive = (() => {
       }
     },
 
+    // ── Recommendations (Phase 2) ───────────────────────────────────────────────
+
+    async loadRecommendations() {
+      const file = await findFile('recommendations.json', folderId);
+      if (!file) return null;
+      return await downloadFile(file.id);
+    },
+
+    async saveRecommendations(doc) {
+      doc.updatedAt = Utils.nowISO();
+      const file = await findFile('recommendations.json', folderId);
+      if (file) {
+        await multipartUpload({ name: 'recommendations.json' }, doc, file.id);
+      } else {
+        await multipartUpload({ name: 'recommendations.json', parents: [folderId] }, doc);
+      }
+    },
+
     // ── Trades ────────────────────────────────────────────────────────────────
 
     async loadTrade(id) {
