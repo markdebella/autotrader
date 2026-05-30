@@ -17,23 +17,22 @@ workspace root) has full context. Delete or trim once these items are resolved.
   launch configs), `.gitignore`, `.editorconfig`. `editor.formatOnSave` is off on
   purpose — preserve the hand-aligned comment columns.
 
-## OPEN BLOCKER — Google OAuth sign-in fails locally
-Signing in throws *"Access blocked: Authorization Error … register the JavaScript
-origin."* The OAuth client ID is in [config.js](config.js#L4)
-(`155253754677-...`, project number `155253754677`).
+## OAuth — new GCP project created (pending local sign-in test)
+The original client ID belonged to the **MigraineTracker** GCP project (number
+`155253754677`), which is why it didn't fit here. On 2026-05-30 we created a fresh
+GCP project for AutoTrader under `markdebella@gmail.com` and swapped in its new
+client ID: `686821485002-...` (see [config.js](config.js#L4)).
 
-Two things to resolve:
-1. **Register authorized JavaScript origins** on that OAuth client in Google Cloud
-   Console → APIs & Services → Credentials:
-   - `http://localhost:8000` and `http://127.0.0.1:8000` (local Live Server)
-   - `https://markdebella.github.io` (live GitHub Pages site)
-   (Origins are scheme+host+port only — no path.)
-2. **Can't find the project in the console.** The error says "register origin" (not
-   "invalid client"), so the project DOES exist — almost certainly the Cloud Console
-   is signed into the **wrong Google account** (work `mark.debella@hmhco.com` instead
-   of the app owner `markdebella@gmail.com`). Switch accounts, then use the project
-   picker → "ALL" tab. If still not visible, create a fresh GCP project + OAuth client
-   and replace the ID in `config.js`.
+New project setup:
+- **Google Drive API** enabled.
+- **OAuth consent screen:** External, in "Testing" status, scope `drive.file`,
+  `markdebella@gmail.com` added as a test user.
+- **Web OAuth client** with Authorized JavaScript origins (no redirect URIs — GIS
+  popup flow): `http://localhost:8000`, `http://127.0.0.1:8000`,
+  `https://markdebella.github.io`. (Origins are scheme+host+port only — no path.)
+
+**VERIFIED 2026-05-30:** local sign-in works at `http://127.0.0.1:8000`. OAuth is no
+longer a blocker.
 
 Note: the app is signed into with `markdebella@gmail.com`; git commits use
 `mark.debella@hmhco.com`. These are intentionally separate.

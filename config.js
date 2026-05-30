@@ -1,9 +1,9 @@
 // Public configuration — no secrets here.
 // The OAuth client ID is safe to commit; Google's security relies on authorized origins, not secret IDs.
 const CONFIG = {
-  clientId: '155253754677-eec50p196kbcv4i265su1ufpsl8bkg82.apps.googleusercontent.com',
+  clientId: '686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.05.30.01',
+  appVersion: '2026.05.30.02',
 
   // Alpaca API endpoints
   alpaca: {
