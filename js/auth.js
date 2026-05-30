@@ -90,16 +90,18 @@ const Auth = (() => {
         gapiReady = true;
         Alpine.store('auth').gapiReady = true;
 
-        if (localStorage.getItem('at_signed_in')) {
+        // One Tap (silent auto sign-in) only works on real https origins. On
+        // localhost / 127.0.0.1 it always fails with a /gsi/status 403 ("origin is not
+        // allowed for the given client ID"), spamming the console, so skip it there.
+        const isLocalOrigin = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+        if (localStorage.getItem('at_signed_in') && !isLocalOrigin) {
           google.accounts.id.prompt((notification) => {
             if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              // One Tap is unavailable here — commonly because the browser's tracking
-              // prevention blocked Google's storage, or because One Tap doesn't support
-              // http://127.0.0.1 origins. Do NOT fall back to an automatic
-              // requestAccessToken: a popup not triggered by a user gesture gets blocked
-              // by the browser, producing console errors and signing nobody in. Instead
-              // fall through to the Sign In button — the user's click supplies the
-              // gesture the OAuth popup needs (this is the path that works).
+              // One Tap unavailable (e.g. the browser's tracking prevention blocked
+              // Google's storage). Do NOT fall back to an automatic requestAccessToken:
+              // a popup not triggered by a user gesture is blocked by the browser and
+              // signs nobody in. Fall through to the Sign In button instead — the user's
+              // click supplies the gesture the OAuth popup needs (the path that works).
               Alpine.store('auth').status = 'signed_out';
             }
           });
