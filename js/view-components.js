@@ -29,6 +29,27 @@ function Dashboard() {
       return manifest.trades.slice(0, 8);
     },
 
+    // "Explain this" modal (Phase 1 contextual education)
+    explain: { open: false, data: { title: '', context: '', glossary: [] } },
+
+    openMetricExplain(key) {
+      const data = Explain.metric(key, {
+        account:    this.account,
+        clock:      this.clock,
+        positions:  this.positions,
+        openOrders: this.openOrders,
+        dailyPnl:   this.dailyPnl,
+      });
+      if (data) { this.explain.data = data; this.explain.open = true; }
+    },
+
+    openPositionExplain(pos) {
+      this.explain.data = Explain.position(pos);
+      this.explain.open = true;
+    },
+
+    closeExplain() { this.explain.open = false; },
+
     init() {
       // Auto-refresh portfolio on view load
       if (Alpaca.isConfigured()) {

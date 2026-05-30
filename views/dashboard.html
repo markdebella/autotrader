@@ -20,7 +20,13 @@
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="display:flex;align-items:baseline;gap:var(--space-md);flex-wrap:wrap">
           <div>
-            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Portfolio Value</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">
+              Portfolio Value
+              <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('portfolioValue')" aria-label="Explain Portfolio Value">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span class="tooltip" x-text="Explain.short('portfolioValue')"></span>
+              </button>
+            </div>
             <div style="font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2"
                  x-text="Utils.formatCurrency(parseFloat(account?.portfolio_value || 0))"></div>
           </div>
@@ -29,6 +35,10 @@
                   :class="dailyPnl >= 0 ? 'gain' : 'loss'"
                   x-text="Utils.formatPnL(dailyPnl)"></span>
             <span style="font-size:0.85rem;color:var(--text-muted);margin-left:4px">today</span>
+            <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('dailyPnl')" aria-label="Explain today's change">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span class="tooltip" x-text="Explain.short('dailyPnl')"></span>
+            </button>
           </div>
         </div>
       </div>
@@ -37,15 +47,33 @@
       <div class="stats-strip">
         <div class="stat-item">
           <div class="stat-item__value" x-text="Utils.formatCurrency(parseFloat(account?.buying_power || 0))"></div>
-          <div class="stat-item__label">Buying Power</div>
+          <div class="stat-item__label">
+            Buying Power
+            <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('buyingPower')" aria-label="Explain Buying Power">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span class="tooltip" x-text="Explain.short('buyingPower')"></span>
+            </button>
+          </div>
         </div>
         <div class="stat-item">
           <div class="stat-item__value" x-text="positions.length"></div>
-          <div class="stat-item__label">Positions</div>
+          <div class="stat-item__label">
+            Positions
+            <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('positions')" aria-label="Explain Positions">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span class="tooltip" x-text="Explain.short('positions')"></span>
+            </button>
+          </div>
         </div>
         <div class="stat-item">
           <div class="stat-item__value" x-text="openOrders.length"></div>
-          <div class="stat-item__label">Open Orders</div>
+          <div class="stat-item__label">
+            Open Orders
+            <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('openOrders')" aria-label="Explain Open Orders">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span class="tooltip" x-text="Explain.short('openOrders')"></span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -54,6 +82,10 @@
         <div class="market-status">
           <span class="market-status__dot" :class="marketOpen ? 'open' : 'closed'"></span>
           <span x-text="marketOpen ? 'Market Open' : 'Market Closed'"></span>
+          <button type="button" class="explain-icon tooltip-trigger" @click="openMetricExplain('market')" aria-label="Explain Market Status">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span class="tooltip" x-text="Explain.short('market')"></span>
+          </button>
         </div>
         <button class="btn btn-ghost btn-sm" @click="refresh()" style="font-size:0.78rem">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -72,7 +104,13 @@
         <div class="position-card" :class="parseFloat(pos.unrealized_pl) >= 0 ? 'gain' : 'loss'"
              style="margin-bottom:var(--space-sm)">
           <div class="position-card__main">
-            <div class="position-card__symbol" x-text="pos.symbol"></div>
+            <div class="position-card__symbol">
+              <span x-text="pos.symbol"></span>
+              <button type="button" class="explain-icon tooltip-trigger" @click="openPositionExplain(pos)" :aria-label="'Explain your ' + pos.symbol + ' position'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span class="tooltip" x-text="Explain.positionShort"></span>
+              </button>
+            </div>
             <div class="position-card__qty" x-text="parseFloat(pos.qty) + ' shares @ ' + Utils.formatCurrency(parseFloat(pos.avg_entry_price))"></div>
           </div>
           <div class="position-card__pnl">
@@ -118,6 +156,31 @@
           </template>
         </div>
       </template>
+    </div>
+  </template>
+
+  <!-- "Explain this" modal (Phase 1 contextual education) -->
+  <template x-if="explain.open">
+    <div class="modal-backdrop" @click.self="closeExplain()" @keydown.escape.window="closeExplain()">
+      <div class="modal">
+        <div class="modal__title" x-text="explain.data.title"></div>
+        <div class="modal__body">
+          <p x-text="explain.data.context"></p>
+          <template x-if="explain.data.glossary && explain.data.glossary.length">
+            <div class="explain-glossary">
+              <template x-for="g in explain.data.glossary" :key="g.term">
+                <div class="explain-glossary__item">
+                  <span class="explain-glossary__term" x-text="g.term"></span>
+                  <span class="explain-glossary__def" x-text="g.definition"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+        <div class="modal__actions">
+          <button class="btn btn-secondary btn-sm" @click="closeExplain()">Got it</button>
+        </div>
+      </div>
     </div>
   </template>
 

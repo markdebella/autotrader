@@ -192,6 +192,41 @@
 }
 .tooltip-trigger:hover .tooltip { display: block; }
 
+/* ── "Explain this" affordance (Phase 1 education) ──────────────────────────── */
+.explain-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 0;
+}
+/* Labels like "Portfolio Value" are uppercased/letter-spaced; reset so the tooltip
+   text inside the trigger renders as normal sentence case. */
+.explain-icon .tooltip { text-transform: none; letter-spacing: normal; }
+.explain-icon:hover { color: var(--accent); }
+.explain-glossary {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.explain-glossary__term {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+.explain-glossary__def {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
 /* ── Onboarding Steps ────────────────────────────────────────────────────── */
 .onboarding-steps {
   counter-reset: step;
