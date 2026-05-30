@@ -1,0 +1,8 @@
+{
+  // Extensions VSCode will offer to install when this folder is opened.
+  "recommendations": [
+    "anthropic.claude-code",                 // Claude Code in the editor (replaces the terminal flow)
+    "ritwickdey.LiveServer",                 // one-click static server for the dashboard
+    "adrianwilczynski.alpine-js-intellisense" // Alpine.js x-* attribute IntelliSense
+  ]
+}

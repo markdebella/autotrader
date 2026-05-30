@@ -1,0 +1,23 @@
+{
+  // Live Server: serve on port 8000 so it matches the authorized Google OAuth
+  // JavaScript origin (http://localhost:8000). Change here AND in the Google
+  // Cloud console together if you ever move ports.
+  "liveServer.settings.port": 8000,
+  "liveServer.settings.root": "/",
+
+  // This codebase uses hand-aligned comments and a specific vanilla-JS style.
+  // Do NOT auto-format on save — it would wreck the column alignment.
+  "editor.formatOnSave": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+
+  // Treat the on-demand view fragments as full HTML for highlighting.
+  "files.associations": {
+    "views/*.html": "html"
+  },
+
+  // Keep line endings as LF to match how the repo is stored.
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}

@@ -1,0 +1,22 @@
+{
+  // Debug the dashboard in the browser with breakpoints in js/*.
+  // Start Live Server first (right-click index.html -> "Open with Live Server",
+  // or the "Go Live" button in the status bar), then press F5.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Edge against Live Server",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:8000",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "Launch Chrome against Live Server",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:8000",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

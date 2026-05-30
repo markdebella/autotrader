@@ -1,5 +1,7 @@
 # AutoTrader — Project Guide
 
+> **New session?** See `HANDOFF.md` for current status and any open blockers.
+
 A **visual, read-only portfolio dashboard** for Alpaca Markets. The dashboard only
 *reads* and *displays* data. All actual trading is performed via the **Alpaca MCP
 server** in Claude Code (paper-trading mode by default) — never from this app's code.
@@ -23,6 +25,10 @@ It's static files, so serve the directory and open it in a browser:
 python -m http.server 8000      # then open http://localhost:8000
 # or: npx serve
 ```
+
+In VSCode: use the **Live Server** extension (right-click `index.html` → "Open with
+Live Server", or the "Go Live" status-bar button). It's preconfigured to port 8000 in
+`.vscode/settings.json`.
 
 Note: Google OAuth requires the origin to be an **authorized JavaScript origin** on
 the OAuth client. `http://localhost:8000` must be registered in the Google Cloud

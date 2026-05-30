@@ -1,0 +1,16 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor cruft
+*.swp
+*~
+
+# Node (only if build tooling is ever added — none today)
+node_modules/
+
+# Claude Code: keep the shared .claude/settings.json committed, but ignore
+# any personal/local overrides.
+.claude/settings.local.json
+.claude/*.local.json
