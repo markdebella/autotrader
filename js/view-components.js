@@ -9,7 +9,7 @@
 
 function Dashboard() {
   return {
-    get alpacaConnected() { return Alpaca.isConfigured(); },
+    get alpacaConnected() { return Alpine.store('data').alpacaConfigured; },
     get account()    { return Alpine.store('portfolio').account; },
     get positions()  { return Alpine.store('portfolio').positions || []; },
     get openOrders() { return Alpine.store('portfolio').orders || []; },
@@ -71,7 +71,7 @@ function Analytics() {
     tab: 'portfolio',
     timeframe: '1M',
 
-    get alpacaConnected() { return Alpaca.isConfigured(); },
+    get alpacaConnected() { return Alpine.store('data').alpacaConfigured; },
 
     get trades() {
       const manifest = Alpine.store('data').manifest;
@@ -166,6 +166,7 @@ function Settings() {
       Alpine.store('ui').paperMode = this.paperMode;
       await Drive.saveSettings(settings);
       Alpaca.init(settings);
+      Alpine.store('data').alpacaConfigured = Alpaca.isConfigured();
 
       Toast.success('Credentials saved.');
 

@@ -26,6 +26,9 @@ document.addEventListener('alpine:init', () => {
     manifest: null,         // { version, updatedAt, trades: [...], portfolioSnapshots: [...] }
     settings: null,         // user settings object
     allTrades: null,        // cached full trade list (used by analytics)
+    alpacaConfigured: false,// reactive mirror of Alpaca.isConfigured() — drives the
+                            // dashboard connected/empty state (the Alpaca module's own
+                            // flag is not reactive, so views must read this instead)
     loading: false,
     loadingMessage: '',
   });
@@ -137,6 +140,7 @@ const App = {
       Alpine.store('ui').paperMode = data.settings.brokerage.paperMode;
       if (data.settings.brokerage.apiKeyId && data.settings.brokerage.apiSecretKey) {
         Alpaca.init(data.settings);
+        data.alpacaConfigured = Alpaca.isConfigured();
         await App.refreshPortfolio();
       }
 
