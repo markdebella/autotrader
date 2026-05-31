@@ -61,6 +61,23 @@
               x-text="enabled ? 'Scheduled trading: ON' : 'Scheduled trading: off'"></button>
       <span class="form-hint" style="margin:0">The kill switch above overrides this.</span>
     </div>
+
+    <!-- Schedule & cadence -->
+    <div style="margin-top:var(--space-md)">
+      <div style="font-weight:600;color:var(--text-primary);font-size:0.88rem">Schedule &amp; cadence</div>
+      <div class="form-hint" style="margin-bottom:4px">
+        Runs on the cadence of your Cloud Scheduler job — by default <strong>once per weekday at 9:35am ET</strong>
+        (just after the open). Each run is one cycle that may place up to your max-trades-per-day. Manage it in
+        <a href="https://console.cloud.google.com" target="_blank">Google Cloud Shell</a>:
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:var(--space-sm)">
+        <pre style="flex:1;min-width:0;overflow-x:auto;white-space:pre;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-sm);font-family:monospace;font-size:0.74rem;line-height:1.5;color:var(--text-primary);margin:0" x-text="scheduleCmd"></pre>
+        <button class="btn btn-secondary btn-sm" @click="copyText(scheduleCmd)">Copy</button>
+      </div>
+      <div class="form-hint" style="margin-top:4px">
+        Cron format is <code>min hour * * day-of-week</code> in the job's time zone. The example above = every hour, 10am–3pm ET, weekdays.
+      </div>
+    </div>
     <div class="rec-guardrail warn" x-show="!scheduleReady" style="margin-top:var(--space-md);display:block">
       <strong>Setup needed for scheduled trading</strong>
       <span style="display:block;margin-top:2px">On-demand <strong>Run a cycle now</strong> works already. Unattended scheduled runs need a one-time cloud setup (all free-tier). In <a href="https://console.cloud.google.com" target="_blank">Google Cloud Shell</a> (project <code>autotrader-497920</code>):</span>

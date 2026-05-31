@@ -539,6 +539,25 @@ function AutopilotView() {
       ].join('\n');
     },
 
+    /** Cloud Shell commands to inspect / change / pause the schedule. */
+    get scheduleCmd() {
+      return [
+        '# See the current schedule:',
+        'gcloud scheduler jobs describe autotrader-autopilot --location=us-west1',
+        '',
+        '# Change how often it runs (example: hourly, 10am-3pm ET, weekdays):',
+        'gcloud scheduler jobs update http autotrader-autopilot --location=us-west1 \\',
+        '  --schedule="0 10-15 * * 1-5" --time-zone="America/New_York"',
+        '',
+        '# Run one cycle right now (to test):',
+        'gcloud scheduler jobs run autotrader-autopilot --location=us-west1',
+        '',
+        '# Pause / resume scheduled trading entirely:',
+        'gcloud scheduler jobs pause  autotrader-autopilot --location=us-west1',
+        'gcloud scheduler jobs resume autotrader-autopilot --location=us-west1',
+      ].join('\n');
+    },
+
     async setEngine(e) { this.engine = e === 'rules' ? 'rules' : 'ai'; await this._saveConfig(); },
 
     async toggleKillSwitch() {
