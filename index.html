@@ -249,7 +249,15 @@
             try {
               const r = await fetch(key + '?v=' + CONFIG.appVersion);
               if (r.ok) {
-                this._cache[key] = await r.text();
+                const html = await r.text();
+                // Some dev servers (e.g. VS Code Live Server) inject a live-reload
+                // script tag into every served HTML file; in a fetched *fragment* that
+                // corrupts the markup and truncates the view, so strip it out here.
+                // No-op in production (GitHub Pages injects nothing). The tag name is
+                // split so the literal token can't confuse the inline-script parser.
+                const tag = 'scr' + 'ipt';
+                const liveReload = new RegExp('<!--\\s*Code injected by live-server\\s*-->[\\s\\S]*?<\\/' + tag + '>', 'gi');
+                this._cache[key] = html.replace(liveReload, '');
               } else {
                 this._cache[key] = `<div class="empty-state"><p>View not found: ${view}</p></div>`;
               }
