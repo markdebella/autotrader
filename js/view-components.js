@@ -104,6 +104,30 @@ function Settings() {
 
     get driveFolderId() { return Drive.getFolderId(); },
 
+    // ── Secret Manager key management (shown as copyable Cloud Shell commands) ──
+    // Every key lives ONLY in Google Secret Manager; these commands rotate a key in place.
+    get gcpProject() { return 'autotrader-497920'; },
+    secretKeys: [
+      { label: 'Claude (Anthropic) API key', name: 'claude-api-key',     note: 'Powers AI trade ideas. Create/rotate at console.anthropic.com.' },
+      { label: 'Alpaca paper API key',        name: 'alpaca-paper-key',    note: 'Regenerate in the Alpaca dashboard first, then update both Alpaca secrets.' },
+      { label: 'Alpaca paper secret key',      name: 'alpaca-paper-secret', note: 'The secret half of the Alpaca paper key pair.' },
+    ],
+    /** Secure update command for one secret (typed at a hidden prompt — never hits shell history). */
+    updateCmd(name) {
+      return `read -rs -p "New value: " K\n`
+           + `printf "%s" "$K" | gcloud secrets versions add ${name} --data-file=-\n`
+           + `unset K; echo`;
+    },
+    /** Forces the backend to re-read secrets (it caches them per running instance). */
+    get refreshCmd() {
+      return `gcloud run services update autotrader-api --region us-west1 `
+           + `--update-env-vars "SECRETS_REFRESHED_AT=$(date +%s)"`;
+    },
+    async copyText(text) {
+      try { await navigator.clipboard.writeText(text); Toast.success('Command copied.'); }
+      catch { Toast.error('Could not copy — select the text and copy it manually.'); }
+    },
+
     init() {
       const settings = Alpine.store('data').settings;
       if (settings) {

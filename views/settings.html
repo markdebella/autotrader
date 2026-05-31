@@ -43,6 +43,38 @@
     </div>
   </div>
 
+  <!-- Managing API keys (Secret Manager) -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Managing Your API Keys</div>
+    <div style="color:var(--text-secondary);font-size:0.9rem;line-height:1.5;margin-top:var(--space-sm);display:flex;flex-direction:column;gap:var(--space-sm)">
+      <p>Every key lives <strong style="color:var(--text-primary)">only in Google Secret Manager</strong> — never in this app, your browser, or Drive. To rotate or replace one, run its command in
+        <a href="https://console.cloud.google.com" target="_blank">Google Cloud Shell</a>
+        (project <code x-text="gcpProject"></code>), then run the <strong style="color:var(--text-primary)">refresh</strong> command so the backend picks up the new version.</p>
+
+      <template x-for="s in secretKeys" :key="s.name">
+        <div style="margin-top:var(--space-xs)">
+          <div style="font-weight:600;color:var(--text-primary);font-size:0.88rem" x-text="s.label + ' — secret: ' + s.name"></div>
+          <div class="form-hint" style="margin-bottom:4px" x-text="s.note"></div>
+          <div style="display:flex;align-items:flex-start;gap:var(--space-sm)">
+            <pre style="flex:1;min-width:0;overflow-x:auto;white-space:pre-wrap;word-break:break-word;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-sm);font-family:monospace;font-size:0.78rem;color:var(--text-primary);margin:0" x-text="updateCmd(s.name)"></pre>
+            <button class="btn btn-secondary btn-sm" @click="copyText(updateCmd(s.name))">Copy</button>
+          </div>
+        </div>
+      </template>
+
+      <div style="margin-top:var(--space-sm)">
+        <div style="font-weight:600;color:var(--text-primary);font-size:0.88rem">Then refresh the backend (after any key change)</div>
+        <div class="form-hint" style="margin-bottom:4px">The service caches secrets per instance; this rolls a new revision so it re-reads them.</div>
+        <div style="display:flex;align-items:flex-start;gap:var(--space-sm)">
+          <pre style="flex:1;min-width:0;overflow-x:auto;white-space:pre-wrap;word-break:break-word;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-sm);font-family:monospace;font-size:0.78rem;color:var(--text-primary);margin:0" x-text="refreshCmd"></pre>
+          <button class="btn btn-secondary btn-sm" @click="copyText(refreshCmd)">Copy</button>
+        </div>
+      </div>
+
+      <p class="form-hint" style="margin-top:var(--space-xs)">Full setup reference: <code>docs/gcp-setup.md</code> in the repo.</p>
+    </div>
+  </div>
+
   <!-- Risk Limits -->
   <div class="card" style="margin-bottom:var(--space-md)">
     <div class="card__title">Risk Limits</div>
