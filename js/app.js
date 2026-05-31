@@ -34,6 +34,10 @@ document.addEventListener('alpine:init', () => {
                             // flag is not reactive, so views must read this instead)
     loading: false,
     loadingMessage: '',
+    // Count of recommendations still awaiting a decision — drives the Ideas nav badge.
+    get pendingRecsCount() {
+      return (this.recommendations || []).filter(r => r.status === 'pending').length;
+    },
   });
 
   Alpine.store('portfolio', {

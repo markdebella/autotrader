@@ -296,6 +296,29 @@
   font-size: 0.8rem;
   margin-left: 6px;
 }
+
+/* Nav badge — count of pending trade ideas awaiting a decision. */
+.nav-badge {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 5px;
+  margin-left: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.nav-badge--corner {   /* corner overlay for the icon-based bottom nav */
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(6px);
+  margin-left: 0;
+}
 .explain-glossary__def {
   display: block;
   margin-top: 2px;

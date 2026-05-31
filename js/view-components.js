@@ -16,6 +16,7 @@ function Dashboard() {
     get clock()      { return Alpine.store('portfolio').clock; },
     get marketOpen() { return this.clock?.is_open ?? false; },
     get loadError()  { return Alpine.store('portfolio').error; },
+    get lastUpdated() { return Alpine.store('portfolio').lastUpdated; },
 
     get dailyPnl() {
       if (!this.account) return 0;
