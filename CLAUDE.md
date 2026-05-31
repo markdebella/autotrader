@@ -26,9 +26,13 @@ python -m http.server 8000      # then open http://localhost:8000
 # or: npx serve
 ```
 
-In VSCode: use the **Live Server** extension (right-click `index.html` → "Open with
-Live Server", or the "Go Live" status-bar button). It's preconfigured to port 8000 in
-`.vscode/settings.json`.
+> **Do NOT use VS Code Live Server.** It injects a live-reload `<script>` into every HTML
+> file it serves — including the `views/*.html` fragments this SPA fetches and renders via
+> `x-html`. That injection corrupts the fragment and silently truncates the view (e.g. the
+> dashboard renders only partway with no console error). Use `python -m http.server 8000`
+> (or `npx serve`), which serve files verbatim. The view loader also strips the injected
+> block as a safety net, but Live Server's injection isn't fully tameable — just avoid it.
+> Trade-off: no auto-reload, so reload manually after edits.
 
 Note: Google OAuth requires the origin to be an **authorized JavaScript origin** on
 the OAuth client. `http://localhost:8000` must be registered in the Google Cloud
