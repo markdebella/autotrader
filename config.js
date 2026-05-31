@@ -3,7 +3,7 @@
 const CONFIG = {
   clientId: '686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.05.31.04',
+  appVersion: '2026.05.31.05',
 
   // Backend service (Cloud Run) that holds the Alpaca keys in Secret Manager and serves
   // read-only portfolio data. The browser never holds Alpaca keys — see SECURITY.md.

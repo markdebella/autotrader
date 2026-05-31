@@ -15,15 +15,16 @@ pages never see it.
 
 ```
 Browser dashboard (any computer, Google sign-in)   ← holds NO keys
-        │  reads portfolio (sends the owner's Google ID token)
+        │  reads portfolio, generates ideas, places (paper) orders
+        │  (sends the owner's Google access token on every call)
         ▼
 Backend service  (Google Cloud Run, Python)        ← the ONLY key holder
         │  fetches keys at runtime via its service account
         ▼
-Google Secret Manager  (paper + live keys)          ← IAM least-privilege, versioned, audit-logged
+Google Secret Manager  (Alpaca + Claude keys)       ← IAM least-privilege, versioned, audit-logged
         │
         ▼
-Alpaca API   (read-only now; execute within hard limits in Phase 3)
+Alpaca API + Claude API  (read data, generate ideas, place orders within hard limits)
         │
         └─ writes trade records / portfolio snapshots → owner's Google Drive → dashboard reads
 ```
@@ -44,17 +45,24 @@ OAuth client ID, which is safe). No secret is ever written to an env var or loca
 - **Frontend** — the existing static dashboard on GitHub Pages. Becomes a pure viewer +
   approver. It authenticates the user with Google and calls the backend; it never stores
   or sees Alpaca keys.
-- **Backend service** — Google Cloud Run (Python + `alpaca-py`). The only holder of the
-  keys (read from Secret Manager at runtime). Responsibilities:
-  - **Read API** (now): authenticated read-only endpoints (account, positions, orders,
+- **Backend service** — Google Cloud Run (Python). The only holder of the keys (read from
+  Secret Manager at runtime). Responsibilities:
+  - **Read API** (live): authenticated read-only endpoints (account, positions, orders,
     clock) for the dashboard.
-  - **Executor** (Phase 3): on a Cloud Scheduler trigger, applies strategy **within hard
-    risk limits**, checks the kill switch, places orders, writes an auditable trade record.
-- **Google Secret Manager** — stores the keys; access via a dedicated service account with
-  only `roles/secretmanager.secretAccessor` on the specific secrets. Every access is logged.
-- **Auth (dashboard → service)** — the dashboard sends the owner's **Google ID token**
-  (JWT). The service verifies the signature + audience and checks the email is the allowed
-  owner, so only the owner can call it.
+  - **Idea generation** (live): `POST /api/recommendations/generate` calls Claude with the
+    key in Secret Manager, falling back to a deterministic rules engine if Claude is down.
+  - **Order placement** (live, Phase 2): `POST /api/orders` re-checks the risk limits and
+    places a **paper** order when the owner approves one in the app.
+  - **Executor** (Phase 3): the same path on a Cloud Scheduler trigger — applies strategy
+    **within hard risk limits**, checks the kill switch, writes an auditable trade record.
+- **Google Secret Manager** — stores the keys (`alpaca-paper-key`, `alpaca-paper-secret`,
+  `claude-api-key`); access via a dedicated service account with only
+  `roles/secretmanager.secretAccessor` on the specific secrets. Every access is logged.
+- **Auth (dashboard → service)** — the dashboard sends the owner's **Google access token**.
+  The service verifies it via Google's `tokeninfo` endpoint and checks the audience
+  (this app's OAuth client) + the email is the allowed owner, so only the owner can call it.
+  (Access token, not ID token, because the ID-token/One Tap flow doesn't work on
+  `http://localhost` during development.)
 - **Google Drive** — unchanged role: non-secret app data (settings, recommendations,
   trade log, portfolio snapshots). Portable + free; the dashboard reads it after sign-in.
 
@@ -83,8 +91,10 @@ OAuth client ID, which is safe). No secret is ever written to an env var or loca
 5. **Live keys** — added as separate Secret Manager secrets via a deliberate promotion
    step, with extra confirmation; same custody; never in the browser.
 
-## Interim (until the service exists)
-The current app still stores keys in Drive and uses them in the browser — this is **legacy,
-to be removed** in step 3. While migrating: do **not** add any new key exposure (no env-var
-or local-file storage). To place a paper trade in the meantime, prefer Alpaca's own paper
-dashboard at <https://app.alpaca.markets> so no keys are handled locally.
+## Status (2026-05-31)
+Steps 1–3 are **done**: Secret Manager holds the Alpaca paper keys and `claude-api-key`;
+the Cloud Run backend serves read-only portfolio data, generates ideas (Claude + rules
+fallback), and places paper orders on approval; the browser no longer takes or stores any
+keys (the boot sequence scrubs any legacy keys lingering in Drive `settings.json`). Step 4
+(scheduled executor) and step 5 (live keys) remain. Standing rule: never reintroduce key
+exposure — no env-var or local-file key storage anywhere.

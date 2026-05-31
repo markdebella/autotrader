@@ -2,7 +2,9 @@
  * view-components.js — Alpine data functions for all views
  *
  * Each view HTML uses x-data="ComponentName()" which calls these functions.
- * This app is a read-only dashboard — trading is handled via the Alpaca MCP server in Claude Code.
+ * The browser holds no Alpaca/Claude keys: it reads portfolio data, generates ideas, and
+ * places (paper) orders by calling the backend service, which holds the keys in Secret
+ * Manager and acts on the browser's behalf (see SECURITY.md).
  */
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -168,9 +170,9 @@ function RecommendationsView() {
     // Pending first, then most-recently-created. Reads the reactive data store.
     get recs() {
       const list = Alpine.store('data').recommendations || [];
-      const rank = { pending: 0, approved: 1, denied: 2 };
+      const rank = { pending: 0, approved: 1, executed: 2, denied: 3 };
       return [...list].sort((a, b) =>
-        (rank[a.status] - rank[b.status]) ||
+        ((rank[a.status] ?? 9) - (rank[b.status] ?? 9)) ||
         (new Date(b.createdAt) - new Date(a.createdAt))
       );
     },
@@ -180,30 +182,28 @@ function RecommendationsView() {
     },
 
     generating: false,
-    importOpen: false,
-    importText: '',
+    executingId: null,    // id of the rec currently being placed (disables its button)
 
-    toggleImport() { this.importOpen = !this.importOpen; },
+    sizeLabel(rec) { return Recs.sizeLabel(rec); },
 
-    sizeLabel(rec)  { return Recs.sizeLabel(rec); },
-    mcpCommand(rec) { return Recs.mcpCommand(rec); },
-
-    /** Ask the backend to generate a fresh batch of ideas; keep approved/denied history. */
+    /**
+     * Ask the backend for a fresh batch of ideas — AI (Claude) first, with an automatic
+     * rules-based fallback if Claude is unavailable. Keeps approved/executed/denied history.
+     */
     async generate() {
       if (this.generating) return;
       this.generating = true;
       try {
         const settings = Alpine.store('data').settings || {};
-        const engine = 'rules';  // in-app Generate = the free rules engine; AI ideas come via the Claude Code prompt
         const res = await Api.generateRecommendations({
-          engine,
+          engine:     'claude',   // AI-primary; the backend falls back to rules if Claude is down
           watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
           riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
         });
         const fresh = res.recommendations || [];
-        // Replace old pending/sample ideas with the new batch; preserve decided ones.
+        // Replace old pending/sample ideas with the new batch; preserve decided/executed ones.
         const kept = (Alpine.store('data').recommendations || [])
-          .filter(r => r.status === 'approved' || r.status === 'denied');
+          .filter(r => r.status === 'approved' || r.status === 'executed' || r.status === 'denied');
         const list = [...fresh, ...kept];
         Alpine.store('data').recommendations = list;
         await Drive.saveRecommendations({
@@ -211,7 +211,7 @@ function RecommendationsView() {
         });
         Company.ensure(fresh.map(r => r.symbol));
         if (res.fallback) {
-          Toast.info(`Claude was unavailable — generated ${fresh.length} rules-based idea${fresh.length === 1 ? '' : 's'}.`);
+          Toast.info(`Claude was unavailable — showing ${fresh.length} rules-based idea${fresh.length === 1 ? '' : 's'} instead.`);
         } else {
           Toast.success(`Generated ${fresh.length} ${res.engine === 'claude' ? 'AI' : 'rules-based'} idea${fresh.length === 1 ? '' : 's'}.`);
         }
@@ -223,70 +223,41 @@ function RecommendationsView() {
       }
     },
 
-    /** Copy a ready-to-run prompt so Claude Code (your subscription) writes AI ideas to Drive. */
-    async copyClaudeCodePrompt() {
-      const settings = Alpine.store('data').settings || {};
-      const prompt = Recs.claudeCodePrompt(
-        settings.watchlist  || CONFIG.defaultWatchlist,
-        settings.riskLimits || CONFIG.defaultRiskLimits,
-      );
-      try {
-        await navigator.clipboard.writeText(prompt);
-        Toast.success('Prompt copied — run it in Claude Code, then paste its JSON into "Import ideas".');
-      } catch {
-        console.log(prompt);
-        Toast.error('Could not copy automatically — the prompt is in the browser console.');
-      }
-    },
-
-    /** Import ideas pasted as JSON (an array, or a { recommendations: [...] } doc). */
-    async importIdeas() {
-      let parsed;
-      try {
-        parsed = JSON.parse(this.importText);
-      } catch {
-        Toast.error('That is not valid JSON — paste the JSON array of ideas.');
-        return;
-      }
-      const rawList = Array.isArray(parsed) ? parsed
-                    : (Array.isArray(parsed?.recommendations) ? parsed.recommendations : null);
-      if (!rawList) { Toast.error('Expected a JSON array of ideas.'); return; }
-
-      const settings   = Alpine.store('data').settings || {};
-      const riskLimits = settings.riskLimits || CONFIG.defaultRiskLimits;
-      const fresh = rawList.map(r => Recs.normalizeImported(r, riskLimits)).filter(Boolean).slice(0, 25);
-      if (!fresh.length) { Toast.error('No valid ideas found (each needs at least a "symbol").'); return; }
-
-      // Replace old pending/sample ideas with the imported batch; keep decided ones.
-      const kept = (Alpine.store('data').recommendations || [])
-        .filter(r => r.status === 'approved' || r.status === 'denied');
-      const list = [...fresh, ...kept];
-      Alpine.store('data').recommendations = list;
-      try {
-        await Drive.saveRecommendations({
-          version: Recs.SCHEMA_VERSION, updatedAt: Utils.nowISO(), recommendations: list,
-        });
-        Company.ensure(fresh.map(r => r.symbol));
-        this.importText = '';
-        this.importOpen = false;
-        Toast.success(`Imported ${fresh.length} idea${fresh.length === 1 ? '' : 's'}.`);
-      } catch (err) {
-        console.error('Import save failed:', err);
-        Toast.error('Imported locally, but could not save to Drive.');
-      }
-    },
-
     async approve(rec) {
       if (!rec.guardrail?.passed) return;       // never approve a limit-breaching idea
-      // Copy the command FIRST, while the click's user-activation is still valid for the
-      // clipboard API (it can lapse after an await on the Drive save).
-      const copied = await this._copyText(this.mcpCommand(rec));
       rec.status = 'approved';
       rec.decidedAt = Utils.nowISO();
       await this._persist();
-      Toast.success(copied
-        ? 'Approved & command copied — paste it into Claude Code to place the order.'
-        : 'Approved — copy the command below and run it in Claude Code.');
+      Toast.success('Approved — press "Place paper order" to execute it.');
+    },
+
+    /** Place the approved (paper) order through the backend, then mark it executed. */
+    async execute(rec) {
+      if (this.executingId || !rec.guardrail?.passed) return;
+      this.executingId = rec.id;
+      try {
+        const settings = Alpine.store('data').settings || {};
+        const order = await Api.placeOrder({
+          symbol:     rec.symbol,
+          side:       rec.side,
+          dollars:    rec.dollars,
+          qty:        rec.qty,
+          orderType:  rec.orderType,
+          limitPrice: rec.limitPrice,
+          riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
+        });
+        rec.status = 'executed';
+        rec.order = { id: order.id || null, submittedAt: Utils.nowISO() };
+        await this._persist();
+        Toast.success(`Paper order placed: ${rec.side} ${this.sizeLabel(rec)} ${rec.symbol}.`);
+        // Reflect the new order on the dashboard next time it's viewed.
+        App.refreshPortfolio();
+      } catch (err) {
+        console.error('Place order failed:', err);
+        Toast.error('Could not place the order. ' + (err.message || ''));
+      } finally {
+        this.executingId = null;
+      }
     },
 
     async deny(rec) {
@@ -294,17 +265,6 @@ function RecommendationsView() {
       rec.decidedAt = Utils.nowISO();
       await this._persist();
       Toast.info('Recommendation denied.');
-    },
-
-    async copyCommand(rec) {
-      const ok = await this._copyText(this.mcpCommand(rec));
-      if (ok) Toast.success('Command copied — paste it into Claude Code.');
-      else Toast.error('Could not copy automatically — select the text and copy it.');
-    },
-
-    async _copyText(text) {
-      try { await navigator.clipboard.writeText(text); return true; }
-      catch { return false; }
     },
 
     /** Persist the current list to Drive and re-trigger Alpine reactivity. */

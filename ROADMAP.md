@@ -71,17 +71,21 @@ educate first, recommend-with-approval second, guarded autonomy last — and sta
 without your tap. Still **paper mode**.
 
 **Features**
-- Scheduled Claude analysis writes `recommendations.json` to Drive: each item has
-  `{ id, symbol, side, qty/dollars, reasoning, guardrailCheck, createdAt, status }`.
-- New **Recommendations** feed in the dashboard: card per rec showing *what*, *why*,
-  and which limits it respects, plus **Approve / Deny** buttons.
-- On approve → trade is placed (initially you place it; later via Alpaca MCP) and
-  logged as a `trade-{uuid}.json` with a link back to the recommendation.
-- "What if I'd taken every rec" shadow-tracking vs. actual, to calibrate trust.
+- On-demand idea generation: the app calls the backend's `POST /api/recommendations/generate`,
+  which uses **Claude** (key in Secret Manager) and falls back to a deterministic **rules
+  engine** if Claude is down. Results saved to `recommendations.json` in Drive; each item is
+  `{ id, symbol, side, qty/dollars, reasoning, guardrail, createdAt, status, source }`. *(done)*
+- **Recommendations** feed in the dashboard: card per rec showing *what*, *why*, and which
+  limits it respects, plus **Approve / Deny** buttons. *(done)*
+- On approve → **Place paper order** → the browser calls the backend's `POST /api/orders`,
+  which re-checks the risk limits and places the paper order via Alpaca REST (keys never
+  leave Secret Manager). *(done)*
+- Still TODO: log each placed order as a `trade-{uuid}.json` linked to the recommendation,
+  and "what if I'd taken every rec" shadow-tracking vs. actual, to calibrate trust.
 
-**Touches:** new `views/recommendations.html` + component, `drive.js`
-(load/save recommendations), `manifest.js` (link recs ↔ trades), scheduling
-(Claude `/schedule` routine or a cron job).
+**Touches:** `service/main.py` (generate + orders endpoints), `js/api.js`,
+`views/recommendations.html` + component, `drive.js` (load/save recommendations),
+`manifest.js` (link recs ↔ trades — pending).
 
 **Exit criteria:** the recommendations are good enough that you'd trust them — proven
 on paper over several weeks.

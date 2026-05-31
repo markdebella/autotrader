@@ -265,6 +265,7 @@
 .rec-status { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
 .rec-status.pending  { color: var(--warning); }
 .rec-status.approved { color: var(--gain); }
+.rec-status.executed { color: var(--gain); }
 .rec-status.denied   { color: var(--text-muted); }
 .rec-why { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: var(--space-md); }
 .rec-guardrail {
@@ -277,16 +278,12 @@
 .rec-guardrail.warn { background: var(--loss-bg); color: var(--text-secondary); border: 1px solid rgba(239,68,68,0.3); }
 .rec-guardrail.warn strong { color: var(--loss); }
 .rec-actions { display: flex; gap: var(--space-sm); }
-.rec-command {
-  background: var(--bg-base); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: var(--space-md);
+.rec-executed {
+  font-size: 0.82rem; color: var(--text-secondary);
+  background: var(--gain-bg); border: 1px solid rgba(34,197,94,0.3);
+  border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);
 }
-.rec-command__label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: var(--space-xs); }
-.rec-command__row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
-.rec-command__row code {
-  flex: 1; min-width: 0; font-size: 0.85rem; color: var(--text-primary);
-  word-break: break-word;
-}
+.rec-executed strong { color: var(--gain); margin-right: 4px; }
 .rec-denied { font-size: 0.82rem; color: var(--text-muted); }
 
 /* Friendly company name shown next to a ticker symbol. */

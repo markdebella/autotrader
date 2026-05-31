@@ -10,6 +10,10 @@ desktop.ini
 # Node (only if build tooling is ever added — none today)
 node_modules/
 
+# Python build artifacts (backend service in service/)
+__pycache__/
+*.pyc
+
 # Claude Code: keep the shared .claude/settings.json committed, but ignore
 # any personal/local overrides.
 .claude/settings.local.json

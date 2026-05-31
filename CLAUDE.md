@@ -2,9 +2,12 @@
 
 > **New session?** See `HANDOFF.md` for current status and any open blockers.
 
-A **visual, read-only portfolio dashboard** for Alpaca Markets. The dashboard only
-*reads* and *displays* data. All actual trading is performed via the **Alpaca MCP
-server** in Claude Code (paper-trading mode by default) — never from this app's code.
+A **visual portfolio dashboard** for Alpaca Markets. The **browser holds no keys and
+places no orders directly** — it reads data, generates AI ideas, and places (paper)
+orders by calling a **backend service** (Google Cloud Run) that holds the Alpaca and
+Claude keys in **Google Secret Manager**. Paper-trading mode by default. Everything
+secret lives in the cloud, configured once, so the app works on any computer the owner
+signs into — nothing installed or configured locally.
 
 ## Tech stack
 
@@ -52,24 +55,30 @@ Scripts load in a fixed order (see `index.html`) because they rely on globals, n
 - **`js/auth.js`** — Google sign-in (GIS token client + GAPI).
 - **`js/drive.js`** — all Google Drive I/O. Data lives in the user's own Drive under
   an `AutoTrader/` folder: `manifest.json` (trade index), `settings.json` (prefs +
-  Alpaca API keys + risk limits), and one `trade-{uuid}.json` per trade.
-- **`js/manifest.js`** — keeps the in-memory manifest in sync with Drive.
-- **`js/alpaca.js`** — **read-only** Alpaca REST client (account, positions, orders,
-  portfolio history, clock). Do **not** add order-placement calls here.
+  risk limits + watchlist — **no API keys**), `recommendations.json` (trade ideas), and
+  one `trade-{uuid}.json` per trade.
+- **`js/api.js`** — client for the **backend service** (`CONFIG.apiBaseUrl`): read-only
+  portfolio (`getPortfolio`), idea generation (`generateRecommendations`), and **paper
+  order placement** (`placeOrder`). Authenticates with the owner's Google access token.
+- **`js/alpaca.js`** — **read-only** Alpaca REST client, legacy/unused for live data now
+  that portfolio comes from the backend. Do **not** add order-placement calls here — the
+  browser never places orders; it asks `api.js`/the backend to.
 - **`js/view-components.js`** — Alpine components for views.
 - **`views/*.html`** — `dashboard`, `analytics`, `education`, `settings`. Loaded
   on demand by the `ViewLoader` component (hash-based routing) and cached.
 
 ## Key conventions & guardrails
 
-- **Keep `alpaca.js` read-only.** Trading goes through the Alpaca MCP server, not the
-  browser app. Adding buy/sell/cancel calls here is out of scope.
+- **The browser never places orders or holds keys.** Trading goes through the backend
+  service's `POST /api/orders` (called via `js/api.js`), which re-checks risk limits and
+  uses the Alpaca keys in Secret Manager. Keep `alpaca.js` read-only; don't add
+  buy/sell/cancel calls to the browser. (The retired path was an Alpaca MCP server in
+  Claude Code — superseded by the backend so the app stays portable and key-free.)
 - **No secrets in the repo.** Only the public OAuth client ID is committed.
-- **Key custody is moving to the hardened model in [`SECURITY.md`](SECURITY.md)** —
-  API keys belong **only** in Google Secret Manager, read by a backend service, **never in
-  the browser, Drive, env vars, or the repo** (paper *and* live). The current
-  keys-in-Drive/browser path is **legacy, to be removed** when the backend service lands.
-  Do not add new key exposure (no env-var or local-file key storage) in the meantime.
+- **Hardened key custody (see [`SECURITY.md`](SECURITY.md)).** API keys — Alpaca **and**
+  Claude — belong **only** in Google Secret Manager, read by the backend service, **never in
+  the browser, Drive, env vars, or the repo** (paper *and* live). The backend service has
+  landed; do not introduce any new key exposure (no env-var or local-file key storage).
 - **Cache-busting:** `index.html` references assets with `?v=` query strings and
   `CONFIG.appVersion` (format `YYYY.MM.DD.NN`). Bump `appVersion` in `config.js` when
   shipping changes that must invalidate caches.

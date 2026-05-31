@@ -1,18 +1,25 @@
 """
-AutoTrader backend — read-only portfolio API (Phase 3 hardened design).
+AutoTrader backend — portfolio API + idea generation + order execution (hardened design).
 
-Runs on Google Cloud Run. It is the ONLY holder of the Alpaca keys: it reads them
-at runtime from Google Secret Manager (never from env vars baked at deploy, never from
-the browser). The static dashboard calls this service with the owner's Google ID token;
-the service verifies the token + owner email before returning anything.
+Runs on Google Cloud Run. It is the ONLY holder of the Alpaca and Claude keys: it reads
+them at runtime from Google Secret Manager (never from env vars baked at deploy, never
+from the browser). The static dashboard calls this service with the owner's Google access
+token; the service verifies the token + owner email before doing anything.
+
+This is what makes AutoTrader portable: every secret lives in the cloud, configured once,
+so the user can sign in on any computer and the dashboard, AI ideas, and execution all
+work with nothing installed or configured locally.
 
 Endpoints:
-  GET /healthz        — unauthenticated health check (for Cloud Run)
-  GET /api/portfolio  — owner-only; returns { account, positions, orders, clock }
-                        as Alpaca's raw REST JSON (same shape the frontend already uses)
+  GET  /healthz                       — unauthenticated health check (for Cloud Run)
+  GET  /api/portfolio                 — owner-only; { account, positions, orders, clock }
+  POST /api/recommendations/generate  — owner-only; AI (Claude) ideas, rules fallback
+  POST /api/orders                    — owner-only; place a paper order via Alpaca REST,
+                                        after re-checking risk limits server-side
 
-Later (Phase 3) this same service gains a scheduled executor that places orders within
-hard risk limits; that's why it uses a real backend rather than the browser.
+Order placement lives here (not in the browser) so the Alpaca keys never leave Secret
+Manager. The browser only ever *asks* this service to act; it holds no keys and places
+no orders itself. A scheduled guarded executor (Phase 3) will reuse this same path.
 """
 
 import datetime
@@ -69,6 +76,17 @@ def _alpaca_data_get(path: str, params: dict | None = None):
         "APCA-API-SECRET-KEY": _secret("alpaca-paper-secret"),
     }
     resp = requests.get(ALPACA_DATA_BASE + path, headers=headers, params=params, timeout=15)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _alpaca_post(path: str, body: dict):
+    headers = {
+        "APCA-API-KEY-ID":     _secret("alpaca-paper-key"),
+        "APCA-API-SECRET-KEY": _secret("alpaca-paper-secret"),
+        "Content-Type":        "application/json",
+    }
+    resp = requests.post(ALPACA_BASE + path, headers=headers, json=body, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -300,3 +318,66 @@ async def generate_recommendations(request: Request):
             "reason": str(e)[:200],
             "recommendations": _rules_recommendations(summary, risk_limits),
         }
+
+
+# ── Order execution ───────────────────────────────────────────────────────────
+# The browser sends an approved idea here; the backend re-checks the risk limits
+# (never trusting the client) and places a PAPER order via Alpaca REST using the keys
+# in Secret Manager. Dollar-sized orders use Alpaca "notional" market orders (fractional
+# shares, time_in_force=day). This is the same execution path the Phase 3 scheduler reuses.
+
+@app.post("/api/orders")
+async def place_order(request: Request):
+    _require_owner(request)
+    if not ALPACA_PAPER:
+        # Guard: live trading is intentionally not enabled from this endpoint yet.
+        raise HTTPException(status_code=403, detail="Live trading is not enabled")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    symbol      = str(body.get("symbol", "")).upper().strip()
+    side        = "sell" if str(body.get("side", "buy")).lower() == "sell" else "buy"
+    order_type  = "limit" if str(body.get("orderType", "market")).lower() == "limit" else "market"
+    risk_limits = body.get("riskLimits") or {}
+    dollars     = body.get("dollars")
+    qty         = body.get("qty")
+    limit_price = body.get("limitPrice")
+
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Missing symbol")
+    if dollars is None and qty is None:
+        raise HTTPException(status_code=400, detail="Specify a dollar amount or share quantity")
+
+    # Authoritative server-side guardrail re-check on the dollar size.
+    if dollars is not None:
+        dollars = float(dollars)
+        gr = _guardrail(dollars, risk_limits)
+        if not gr["passed"]:
+            raise HTTPException(status_code=422, detail="Order exceeds risk limits: " + gr["notes"])
+
+    order: dict = {"symbol": symbol, "side": side, "type": order_type, "time_in_force": "day"}
+    if order_type == "limit":
+        # Alpaca notional orders must be market orders, so limit orders require a share qty.
+        if qty is None:
+            raise HTTPException(status_code=400, detail="Limit orders require a share quantity")
+        order["qty"] = qty
+        if limit_price is not None:
+            order["limit_price"] = float(limit_price)
+    elif dollars is not None:
+        order["notional"] = round(dollars, 2)
+    else:
+        order["qty"] = qty
+
+    try:
+        return _alpaca_post("/v2/orders", order)
+    except requests.HTTPError as e:
+        msg = ""
+        try:
+            msg = (e.response.json() or {}).get("message", "")
+        except Exception:
+            msg = (e.response.text or "")[:200]
+        raise HTTPException(status_code=502, detail=f"Alpaca rejected the order: {msg or e.response.status_code}")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca to place the order")

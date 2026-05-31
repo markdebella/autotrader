@@ -46,8 +46,8 @@
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Trade Ideas (Approve / Deny)</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
           <p>The <strong style="color:var(--text-primary)">Ideas</strong> tab lists trade suggestions for <strong style="color:var(--text-primary)">you</strong> to approve or deny — nothing trades automatically. Each idea shows <em>what</em> (symbol, side, size), <em>why</em> (reasoning), and how it fits within your <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.</p>
-          <p>Two ways to get ideas, both free: <strong style="color:var(--text-primary)">Generate ideas (rules)</strong> runs an instant, deterministic price-rules engine; or <strong style="color:var(--text-primary)">Copy Claude Code prompt</strong> gives you a prompt to run in <strong style="color:var(--text-primary)">Claude Code</strong> (your Claude subscription) — it outputs JSON ideas you paste into <strong style="color:var(--text-primary)">Import ideas</strong>, and the app saves them to your Drive. No API key either way.</p>
-          <p><strong style="color:var(--text-primary)">Approving</strong> records your decision and copies a ready-to-run command you paste into <strong style="color:var(--text-primary)">Claude Code</strong>, which places the order in <strong style="color:var(--text-primary)">paper mode</strong>. An idea that would breach a risk limit can't be approved.</p>
+          <p>Press <strong style="color:var(--text-primary)">Generate ideas</strong> and the backend writes AI suggestions with <strong style="color:var(--text-primary)">Claude</strong> (its key kept in Secret Manager, never in your browser), grounded in your watchlist and account. If Claude is ever down, it falls back automatically to a free, deterministic <strong style="color:var(--text-primary)">rules engine</strong> — so you always get ideas.</p>
+          <p><strong style="color:var(--text-primary)">Approving</strong> records your decision; pressing <strong style="color:var(--text-primary)">Place paper order</strong> then has the backend submit it to Alpaca in <strong style="color:var(--text-primary)">paper mode</strong> — no copy/paste, nothing installed. An idea that would breach a risk limit can't be approved, and the backend re-checks your limits before placing any order.</p>
         </div>
       </div>
 
@@ -59,10 +59,10 @@
             <strong style="color:var(--gain)">1. Educate</strong> — understand every number on your dashboard. <em>(done)</em>
           </div>
           <div>
-            <strong style="color:var(--text-primary)">2. Recommend + approve</strong> — ideas you approve or deny; execution stays in your hands. Still paper. <em>(in progress — the Ideas tab)</em>
+            <strong style="color:var(--text-primary)">2. Recommend + approve</strong> — AI ideas you approve or deny; you press the button, the backend places the paper order within your risk limits. <em>(in progress — the Ideas tab)</em>
           </div>
           <div>
-            <strong style="color:var(--text-muted)">3. Guarded autonomy</strong> — a deterministic service trades on a schedule, but only within hard-coded risk limits, with a kill switch. <em>(planned)</em>
+            <strong style="color:var(--text-muted)">3. Guarded autonomy</strong> — the same backend trades on a schedule, but only within hard-coded risk limits, with a kill switch. <em>(planned)</em>
           </div>
           <p style="margin-top:var(--space-xs)">Guiding rule: <strong style="color:var(--text-primary)">paper before live, small before large</strong>, and execution is always deterministic code — never an AI pulling the trigger unchecked.</p>
         </div>
@@ -104,9 +104,9 @@
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">How a Trade Happens in AutoTrader</div>
         <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
-          <li>In <strong>Ideas</strong>, press <strong>Generate ideas (rules)</strong> or paste the <strong>Claude Code prompt</strong> for AI ideas — or decide on your own.</li>
+          <li>In <strong>Ideas</strong>, press <strong>Generate ideas</strong> for AI suggestions (rules fallback if Claude is down) — or decide on your own.</li>
           <li>You <strong>Approve</strong> it — only allowed if it passes your risk limits.</li>
-          <li>The order is placed in <strong>paper mode</strong> (today: by running the copied command in Claude Code; later: automatically by the guarded execution service).</li>
+          <li>Press <strong>Place paper order</strong>. The backend re-checks your limits and submits the order to Alpaca in <strong>paper mode</strong> (later: automatically, on a schedule, by the same guarded service).</li>
           <li>Come back to the <strong>Dashboard</strong> and press <strong>Refresh</strong> to see the order and, once it fills, your new position.</li>
         </ol>
         <div class="form-hint" style="margin-top:var(--space-sm)">Orders placed while the market is closed sit as <strong>open orders</strong> ("accepted") and fill when the market next opens.</div>

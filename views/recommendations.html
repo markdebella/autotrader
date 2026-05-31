@@ -9,11 +9,11 @@
   <div class="card" style="margin-bottom:var(--space-md)">
     <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5">
       These are trade ideas for <strong style="color:var(--text-primary)">you</strong> to approve or deny —
-      nothing trades automatically. The dashboard is <strong style="color:var(--text-primary)">read-only by
-      design</strong>, so rather than placing orders itself, approving <strong style="color:var(--text-primary)">copies
-      a ready-to-run command</strong> for <strong style="color:var(--text-primary)">Claude Code</strong>, which
-      executes it via the Alpaca MCP server (<strong style="color:var(--text-primary)">paper mode</strong> by
-      default). Each idea shows how it fits within your
+      nothing trades automatically. <strong style="color:var(--text-primary)">Generate ideas</strong> asks the
+      backend for AI suggestions (via Claude), falling back to a deterministic rules engine if Claude is
+      unavailable. When you approve and place one, the <strong style="color:var(--text-primary)">backend places the
+      order</strong> in <strong style="color:var(--text-primary)">paper mode</strong> using keys kept in Secret
+      Manager — the browser never holds keys or places orders itself. Each idea shows how it fits within your
       <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.
     </div>
   </div>
@@ -21,35 +21,14 @@
   <!-- Generate controls -->
   <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);flex-wrap:wrap">
     <button class="btn btn-primary btn-sm" @click="generate()" :disabled="generating">
-      <span x-show="!generating">Generate ideas (rules)</span>
+      <span x-show="!generating">Generate ideas</span>
       <span x-show="generating">Generating…</span>
     </button>
-    <button class="btn btn-secondary btn-sm" @click="copyClaudeCodePrompt()">Copy Claude Code prompt</button>
-    <button class="btn btn-secondary btn-sm" @click="toggleImport()" x-text="importOpen ? 'Cancel import' : 'Import ideas'"></button>
   </div>
   <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:var(--space-md)">
-    <strong style="color:var(--text-secondary)">Rules</strong> — instant, free, deterministic.
-    <strong style="color:var(--text-secondary)">Claude Code prompt</strong> — AI ideas via your Claude subscription: run it in Claude Code, then <strong style="color:var(--text-secondary)">Import</strong> the JSON it outputs (no API key needed).
+    AI-written ideas via Claude (your key in Secret Manager) — with an automatic, free
+    rules-based fallback if Claude is down. All generated server-side; no copy/paste.
   </p>
-
-  <!-- Import ideas (paste JSON) -->
-  <template x-if="importOpen">
-    <div class="card" style="margin-bottom:var(--space-md)">
-      <div class="card__title">Import ideas</div>
-      <p style="color:var(--text-secondary);font-size:0.85rem;margin:var(--space-sm) 0">
-        Paste a JSON array of ideas. Each item needs at least <code>symbol</code>, plus optional
-        <code>side</code>, <code>dollars</code>, and <code>reasoning</code>. The app fills in the IDs,
-        guardrail checks, and timestamps, and saves to your Drive.
-      </p>
-      <textarea class="form-input" x-model="importText" rows="8"
-                style="font-family:monospace;font-size:0.8rem;width:100%"
-                placeholder='[ { "symbol": "AAPL", "side": "buy", "dollars": 10, "reasoning": "..." } ]'></textarea>
-      <div style="margin-top:var(--space-sm);display:flex;gap:var(--space-sm)">
-        <button class="btn btn-primary btn-sm" @click="importIdeas()" :disabled="!importText.trim()">Save imported ideas</button>
-        <button class="btn btn-secondary btn-sm" @click="toggleImport()">Cancel</button>
-      </div>
-    </div>
-  </template>
 
   <!-- Empty state -->
   <template x-if="recs.length === 0">
@@ -58,7 +37,7 @@
         <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>
       </svg>
       <p style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px">No trade ideas yet</p>
-      <p>When Claude analyzes your portfolio (via the Alpaca MCP server in Claude Code), it writes recommendations here for you to approve or deny.</p>
+      <p>Press <strong>Generate ideas</strong> and the backend will analyze your watchlist and suggest small starter trades for you to approve or deny.</p>
     </div>
   </template>
 
@@ -96,14 +75,22 @@
         </div>
       </template>
 
-      <!-- Approved: show the MCP command to run -->
+      <!-- Approved: place the paper order (executed by the backend) -->
       <template x-if="rec.status === 'approved'">
-        <div class="rec-command">
-          <div class="rec-command__label">Paste into Claude Code to place the order — runs via the Alpaca MCP server (paper mode):</div>
-          <div class="rec-command__row">
-            <code x-text="mcpCommand(rec)"></code>
-            <button class="btn btn-secondary btn-sm" @click="copyCommand(rec)">Copy</button>
-          </div>
+        <div class="rec-actions">
+          <button class="btn btn-primary btn-sm" @click="execute(rec)" :disabled="executingId === rec.id || !rec.guardrail.passed">
+            <span x-show="executingId !== rec.id">Place paper order</span>
+            <span x-show="executingId === rec.id">Placing…</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" @click="deny(rec)" :disabled="executingId === rec.id">Cancel</button>
+        </div>
+      </template>
+
+      <!-- Executed: confirmation -->
+      <template x-if="rec.status === 'executed'">
+        <div class="rec-executed">
+          <strong>Paper order placed.</strong>
+          <span x-text="'Submitted to Alpaca' + (rec.order && rec.order.id ? ' (order ' + String(rec.order.id).slice(0,8) + '…)' : '') + '. Check the dashboard for fills.'"></span>
         </div>
       </template>
 

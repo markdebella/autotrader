@@ -31,15 +31,37 @@ New project setup:
   popup flow): `http://localhost:8000`, `http://127.0.0.1:8000`,
   `https://markdebella.github.io`. (Origins are scheme+host+port only — no path.)
 
-**VERIFIED 2026-05-30:** local sign-in works at `http://127.0.0.1:8000`. OAuth is no
-longer a blocker.
+**VERIFIED:** sign-in works. Develop locally on `http://localhost:8000` (required for
+Google One Tap) served via `python -m http.server 8000` — **not** Live Server (it
+injects a reload `<script>` that corrupts the fetched `views/*.html` fragments).
 
 Note: the app is signed into with `markdebella@gmail.com`; git commits use
 `mark.debella@hmhco.com`. These are intentionally separate.
 
+## Backend (Cloud Run) — live
+`autotrader-api` in region `us-west1`, project `autotrader-497920`. Holds the Alpaca
+paper keys in **Secret Manager**; serves read-only `/api/portfolio` and
+`/api/recommendations/generate`. The browser never holds keys. `CONFIG.apiBaseUrl` in
+[config.js](config.js#L10) points at it.
+
+> **Redeploy gotcha:** redeploy with every env var hard-coded — a fresh Cloud Shell
+> drops `$ORIGINS`/`$SA`, and `--set-env-vars` then wipes `ALLOWED_ORIGINS`, which 400s
+> every CORS preflight and makes the dashboard fail with a misleading
+> "...keys in Secret Manager" error. `ALLOWED_ORIGINS` must include
+> `https://markdebella.github.io,http://localhost:8000,http://127.0.0.1:8000` (commas →
+> pass env vars with the `^;^` delimiter).
+
+## Phase status
+- **Phase 1 (Educate): done** — ⓘ explain tooltips/modals on every metric + position,
+  glossary, Learn section.
+- **Phase 2 (Recommend + Approve): in progress** — Ideas tab with two free idea paths
+  (rules engine; Claude Code prompt → Import JSON), Approve/Deny wired, Approve emits a
+  copyable Alpaca-MCP command for Claude Code (paper mode).
+- **Phase 3 (Guarded autonomy): planned** — scheduled deterministic executor.
+
 ## Likely next step
-Phase 1 — contextual portfolio education (explain the user's real positions/metrics in
-plain English on the dashboard).
+Smoke-test the full Ideas loop (Generate/Import → Approve → run MCP command in Claude
+Code → Refresh dashboard), then build approve→executed-trade linkage and shadow-tracking.
 
 ## Resuming the original terminal session
 The verbatim conversation that produced all this lives under the `C:\git` directory.

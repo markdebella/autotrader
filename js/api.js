@@ -41,5 +41,28 @@ const Api = (() => {
       }
       return resp.json();
     },
+
+    /**
+     * Place a paper order through the backend (which re-checks risk limits and holds the
+     * Alpaca keys). Pass the approved recommendation + the current risk limits. Returns
+     * Alpaca's order JSON. The browser never touches Alpaca keys.
+     */
+    async placeOrder({ symbol, side, dollars, qty, orderType, limitPrice, riskLimits }) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/orders', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol, side, dollars, qty, orderType, limitPrice, riskLimits }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        // Surface the backend's human-readable reason (e.g. a risk-limit or Alpaca rejection).
+        let detail = body.slice(0, 300);
+        try { detail = JSON.parse(body).detail || detail; } catch { /* keep raw */ }
+        throw new Error(detail || `Backend ${resp.status}`);
+      }
+      return resp.json();
+    },
   };
 })();

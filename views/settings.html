@@ -37,9 +37,9 @@
   <div class="card" style="margin-bottom:var(--space-md)">
     <div class="card__title">Trade Ideas</div>
     <div style="color:var(--text-secondary);font-size:0.9rem;line-height:1.5;margin-top:var(--space-sm);display:flex;flex-direction:column;gap:var(--space-sm)">
-      <p>On the <a href="#" @click.prevent="Router.go('recommendations')">Ideas</a> tab you can generate trade suggestions two ways — both free:</p>
-      <p><strong style="color:var(--text-primary)">Generate ideas (rules)</strong> — instant, deterministic rules on recent prices. No AI, no key.</p>
-      <p><strong style="color:var(--text-primary)">Claude Code prompt + Import</strong> — AI-written ideas using your <strong style="color:var(--text-primary)">Claude subscription</strong>: copy the prompt, run it in Claude Code, then paste the JSON it outputs into the Ideas tab's <strong style="color:var(--text-primary)">Import ideas</strong> box. No API key needed.</p>
+      <p>On the <a href="#" @click.prevent="Router.go('recommendations')">Ideas</a> tab, <strong style="color:var(--text-primary)">Generate ideas</strong> asks the backend for AI-written suggestions (via <strong style="color:var(--text-primary)">Claude</strong>), grounded in your watchlist, account, and risk limits.</p>
+      <p>The Claude key lives only in <strong style="color:var(--text-primary)">Google Secret Manager</strong> — never in the browser. If Claude is ever unavailable, the backend automatically falls back to a free, deterministic <strong style="color:var(--text-primary)">rules engine</strong> so you always get ideas.</p>
+      <p>Approve an idea and press <strong style="color:var(--text-primary)">Place paper order</strong> — the backend submits it to Alpaca in paper mode. No copy/paste, nothing to install.</p>
     </div>
   </div>
 

@@ -1,8 +1,9 @@
 /**
  * app.js — Alpine.js global stores, router, and app boot sequence
  *
- * This app is a read-only portfolio dashboard. Trading is handled via
- * the Alpaca MCP server in Claude Code.
+ * The browser holds no keys. Portfolio data, AI idea generation, and (paper) order
+ * execution all go through the backend service, which holds the Alpaca/Claude keys in
+ * Secret Manager (see SECURITY.md). This is what makes the app portable across computers.
  *
  * Boot order:
  *  1. Alpine stores initialized (before Alpine starts)
@@ -160,7 +161,7 @@ const App = {
       }
 
       // Load recommendations (Phase 2). Seed samples on first run so the feed is
-      // explorable before Claude writes real recommendations to Drive via the MCP server.
+      // explorable before the user generates real ideas from the backend.
       const recDoc = await Drive.loadRecommendations();
       if (recDoc && Array.isArray(recDoc.recommendations)) {
         data.recommendations = recDoc.recommendations;
