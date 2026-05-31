@@ -231,7 +231,7 @@ function RecommendationsView() {
       Toast.success('Approved — press "Place paper order" to execute it.');
     },
 
-    /** Place the approved (paper) order through the backend, then mark it executed. */
+    /** Place the approved (paper) order through the backend, log it, then mark it executed. */
     async execute(rec) {
       if (this.executingId || !rec.guardrail?.passed) return;
       this.executingId = rec.id;
@@ -247,9 +247,40 @@ function RecommendationsView() {
           riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
         });
         rec.status = 'executed';
-        rec.order = { id: order.id || null, submittedAt: Utils.nowISO() };
+        rec.order  = { id: order.id || null, submittedAt: Utils.nowISO() };
+
+        // Log the placed order to the Drive trade journal, linked back to this idea, so it
+        // shows in Recent Trades and builds the audit trail (basis for shadow-tracking + Phase 3).
+        let logged = true;
+        try {
+          const trade = {
+            id:               order.id || Utils.uuid(),
+            symbol:           rec.symbol,
+            side:             rec.side,
+            qty:              order.qty != null ? Number(order.qty) : null,
+            notional:         order.notional != null ? Number(order.notional) : (rec.dollars ?? null),
+            orderType:        rec.orderType,
+            limitPrice:       rec.limitPrice ?? null,
+            filledAvgPrice:   order.filled_avg_price != null ? Number(order.filled_avg_price) : null,
+            status:           order.status || 'accepted',
+            submittedAt:      order.submitted_at || order.created_at || Utils.nowISO(),
+            filledAt:         order.filled_at || null,
+            reasoning:        rec.reasoning,
+            source:           rec.source,
+            recommendationId: rec.id,
+            paper:            true,
+          };
+          rec.tradeId = trade.id;
+          await Drive.saveTrade(trade);
+          await Manifest.upsert(trade);   // updates the in-memory manifest + saves it to Drive
+        } catch (logErr) {
+          logged = false;
+          console.error('Order placed but trade-log write failed:', logErr);
+        }
+
         await this._persist();
-        Toast.success(`Paper order placed: ${rec.side} ${this.sizeLabel(rec)} ${rec.symbol}.`);
+        Toast.success(`Paper order placed: ${rec.side} ${this.sizeLabel(rec)} ${rec.symbol}.`
+                      + (logged ? '' : ' (note: trade-log save failed)'));
         // Reflect the new order on the dashboard next time it's viewed.
         App.refreshPortfolio();
       } catch (err) {

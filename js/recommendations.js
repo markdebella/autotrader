@@ -18,7 +18,8 @@
  *     guardrail: { passed: boolean, notes: string },
  *     createdAt, decidedAt, status: 'pending'|'approved'|'executed'|'denied',
  *     source: 'claude'|'rules'|'sample',
- *     order: { id, submittedAt } | null   // set once placed
+ *     order: { id, submittedAt } | null,  // set once placed
+ *     tradeId: string | null              // id of the logged trade-{id}.json (links rec ↔ trade)
  *   }
  */
 
