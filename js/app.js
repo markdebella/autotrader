@@ -18,7 +18,9 @@
 document.addEventListener('alpine:init', () => {
 
   Alpine.store('auth', {
-    status: 'signed_out',   // 'signed_out' | 'signing_in' | 'signed_in'
+    // Start in 'signing_in' if we were signed in before, so the silent token restore
+    // (auth.js) runs without flashing the Sign In screen on reload.
+    status: localStorage.getItem('at_signed_in') ? 'signing_in' : 'signed_out',  // 'signed_out' | 'signing_in' | 'signed_in'
     gapiReady: false,
   });
 

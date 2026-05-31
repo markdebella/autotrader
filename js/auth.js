@@ -86,27 +86,19 @@ const Auth = (() => {
         cancel_on_tap_outside: false,
       });
 
-      // 3. Load GAPI, then attempt silent sign-in
+      // 3. Load GAPI, then silently restore the session if we were signed in before.
       gapi.load('client', async () => {
         await gapi.client.init({});
         gapiReady = true;
         Alpine.store('auth').gapiReady = true;
 
-        // One Tap (silent auto sign-in) only works on real https origins. On
-        // localhost / 127.0.0.1 it always fails with a /gsi/status 403 ("origin is not
-        // allowed for the given client ID"), spamming the console, so skip it there.
-        const isLocalOrigin = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-        if (localStorage.getItem('at_signed_in') && !isLocalOrigin) {
-          google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              // One Tap unavailable (e.g. the browser's tracking prevention blocked
-              // Google's storage). Do NOT fall back to an automatic requestAccessToken:
-              // a popup not triggered by a user gesture is blocked by the browser and
-              // signs nobody in. Fall through to the Sign In button instead — the user's
-              // click supplies the gesture the OAuth popup needs (the path that works).
-              Alpine.store('auth').status = 'signed_out';
-            }
-          });
+        // Keep the user signed in across reloads WITHOUT a popup: prompt:'none' returns a
+        // token via a hidden iframe when they still have an active Google session + prior
+        // consent (seamless). If it can't, GIS returns an error (no UI shown) which
+        // handleToken turns into 'signed_out' → the Sign In button. Same behavior on
+        // localhost and the live site; never opens a blocked popup.
+        if (localStorage.getItem('at_signed_in')) {
+          tokenClient.requestAccessToken({ prompt: 'none' });
         }
       });
     },
