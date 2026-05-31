@@ -61,9 +61,17 @@
               x-text="enabled ? 'Scheduled trading: ON' : 'Scheduled trading: off'"></button>
       <span class="form-hint" style="margin:0">The kill switch above overrides this.</span>
     </div>
-    <div class="rec-guardrail warn" x-show="!scheduleReady" style="margin-top:var(--space-md)">
-      <strong>Setup needed</strong>
-      <span>Scheduled runs need the Stage B backend (Firestore + a Cloud Scheduler job). See <code>docs/gcp-setup.md</code> → "Scheduled autopilot". Until then, use <strong>Run a cycle now</strong> above.</span>
+    <div class="rec-guardrail warn" x-show="!scheduleReady" style="margin-top:var(--space-md);display:block">
+      <strong>Setup needed for scheduled trading</strong>
+      <span style="display:block;margin-top:2px">On-demand <strong>Run a cycle now</strong> works already. Unattended scheduled runs need a one-time cloud setup (all free-tier). In <a href="https://console.cloud.google.com" target="_blank">Google Cloud Shell</a> (project <code>autotrader-497920</code>):</span>
+      <ol style="margin:6px 0 0;padding-left:18px;color:var(--text-secondary);font-size:0.82rem;line-height:1.6">
+        <li>Enable the <strong>Firestore</strong> &amp; <strong>Cloud Scheduler</strong> APIs.</li>
+        <li>Create a <strong>Firestore</strong> database (Native mode).</li>
+        <li>Grant the backend service account <strong>Firestore access</strong> (<code>roles/datastore.user</code>).</li>
+        <li>Create a <strong>scheduler service account</strong> and <strong>redeploy</strong> the backend with its email as <code>CRON_SA_EMAIL</code>.</li>
+        <li>Create the <strong>Cloud Scheduler job</strong> that calls <code>/api/autopilot/scheduled-run</code>.</li>
+      </ol>
+      <span style="display:block;margin-top:6px">Copy-paste commands: <code>docs/gcp-setup.md</code> → <em>"Scheduled autopilot (Stage B)"</em>. This message clears automatically once the backend's config store is live.</span>
     </div>
   </div>
 
