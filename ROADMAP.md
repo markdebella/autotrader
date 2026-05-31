@@ -102,9 +102,11 @@ on paper over several weeks.
   or the rules engine, **re-checks every risk limit server-side** (per-order, position-aware
   per-position, daily trade count, daily loss), honors a kill switch, places the surviving paper
   orders, and logs them. Lets you watch the strategy and the equity curve with zero real risk.
-- **Stage B — scheduled paper autopilot** *(next)*: Cloud Scheduler calls that same path
-  unattended (e.g. daily at the open). Needs backend-readable config/kill-switch + a run log
-  without a browser (stored Drive token or a small Firestore doc) and scheduler→service auth.
+- **Stage B — scheduled paper autopilot** *(done — paper)*: Cloud Scheduler calls
+  `POST /api/autopilot/scheduled-run` unattended (OIDC auth from a dedicated service account).
+  Config + kill switch + a run log live in **Firestore** so the backend reads them with no
+  browser open; orders it places are imported into the dashboard's trade journal on refresh.
+  Controlled in-app from the Autopilot tab (one-time GCP setup in `docs/gcp-setup.md`).
 - **Stage C — live**: only after a proven paper track record; separate live secrets, deliberate
   promotion, miniscule size.
 

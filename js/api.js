@@ -89,6 +89,41 @@ const Api = (() => {
       return resp.json();
     },
 
+    /** Read the scheduled-autopilot config (Firestore-backed). Stage B. */
+    async getAutopilotConfig() {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/autopilot/config', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error(`Backend ${resp.status}`);
+      return resp.json();
+    },
+
+    /** Save (merge) the scheduled-autopilot config. The scheduler reads this with no browser open. */
+    async saveAutopilotConfig(patch) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/autopilot/config', {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch || {}),
+      });
+      if (!resp.ok) throw new Error(`Backend ${resp.status}`);
+      return resp.json();
+    },
+
+    /** Recent scheduled-run log entries. Returns { runs: [...] }. */
+    async getAutopilotRuns() {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/autopilot/runs', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error(`Backend ${resp.status}`);
+      return resp.json();
+    },
+
     /**
      * Run one autonomous (paper) trading cycle on the backend. engine: 'ai' | 'rules'.
      * The backend enforces every risk limit + the kill switch and places the surviving

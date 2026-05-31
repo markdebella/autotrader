@@ -49,6 +49,38 @@
     </div>
   </div>
 
+  <!-- Scheduled trading (Stage B) -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Scheduled trading</div>
+    <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:var(--space-sm)">
+      When on, the backend runs a cycle automatically on your schedule (a Cloud Scheduler job) —
+      no browser needed — using the engine, kill switch, and your Investing Focus + risk limits.
+    </p>
+    <div style="margin-top:var(--space-md);display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap">
+      <button class="btn btn-sm" :class="enabled ? 'btn-primary' : 'btn-secondary'" @click="toggleEnabled()"
+              x-text="enabled ? 'Scheduled trading: ON' : 'Scheduled trading: off'"></button>
+      <span class="form-hint" style="margin:0">The kill switch above overrides this.</span>
+    </div>
+    <div class="rec-guardrail warn" x-show="!scheduleReady" style="margin-top:var(--space-md)">
+      <strong>Setup needed</strong>
+      <span>Scheduled runs need the Stage B backend (Firestore + a Cloud Scheduler job). See <code>docs/gcp-setup.md</code> → "Scheduled autopilot". Until then, use <strong>Run a cycle now</strong> above.</span>
+    </div>
+  </div>
+
+  <!-- Scheduled run history -->
+  <div class="card" style="margin-bottom:var(--space-md)" x-show="runs.length">
+    <div class="card__title">Scheduled run history</div>
+    <div style="display:flex;flex-direction:column;gap:var(--space-xs);margin-top:var(--space-sm)">
+      <template x-for="(r, i) in runs" :key="i">
+        <div style="display:flex;justify-content:space-between;gap:var(--space-sm);font-size:0.82rem;border-bottom:1px solid var(--border);padding:6px 0">
+          <span style="color:var(--text-muted)" x-text="fmtTime(r.ts)"></span>
+          <span style="color:var(--text-secondary)"
+                x-text="r.halted ? ('halted — ' + (r.reason || '')) : (r.error ? ('error — ' + r.error) : ((r.engine === 'ai' ? 'AI' : 'rules') + ' · ' + (r.placedCount || 0) + ' placed'))"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+
   <!-- Last run summary -->
   <template x-if="lastRun">
     <div class="card" style="margin-bottom:var(--space-md)">

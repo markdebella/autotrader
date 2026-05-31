@@ -236,6 +236,7 @@ const App = {
     const TERMINAL = new Set(['filled', 'canceled', 'cancelled', 'expired', 'rejected', 'done_for_day', 'replaced']);
     const byId = {};
     for (const o of orders) byId[o.id] = o;
+    const known = new Set(manifest.trades.map(t => t.id));
 
     let changed = false;
     // Snapshot the ids first so iterating is unaffected by Manifest.upsert mutating the list.
@@ -258,7 +259,25 @@ const App = {
       }
       await new Promise(r => setTimeout(r, 120));   // gentle on Drive rate limits
     }
-    if (changed) Toast.info('Updated trade fills from Alpaca.');
+
+    // Import orders not yet in the journal (e.g. placed by the scheduled autopilot, or on
+    // Alpaca directly) so they appear in Recent Trades. Cap to bound Drive writes.
+    const IMPORT_STATES = new Set(['filled', 'partially_filled', 'accepted', 'new', 'pending_new']);
+    const unseen = orders.filter(o => o.id && !known.has(o.id) && IMPORT_STATES.has(o.status)).slice(0, 20);
+    for (const o of unseen) {
+      try {
+        await App.logPlacedOrder(o, {
+          symbol: o.symbol, side: o.side,
+          dollars: o.notional != null ? Number(o.notional) : null,
+          qty: (o.filled_qty && Number(o.filled_qty) > 0) ? Number(o.filled_qty) : (o.qty != null ? Number(o.qty) : null),
+          orderType: o.type || 'market', source: 'imported',
+        });
+        changed = true;
+      } catch (e) { console.warn('Import order failed:', o.id, e); }
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    if (changed) Toast.info('Synced trades from Alpaca.');
   },
 
   /**

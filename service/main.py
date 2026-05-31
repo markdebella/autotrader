@@ -43,6 +43,9 @@ ALPACA_PAPER    = os.environ.get("ALPACA_PAPER", "true").lower() == "true"
 ALPACA_BASE = "https://paper-api.alpaca.markets" if ALPACA_PAPER else "https://api.alpaca.markets"
 ALPACA_DATA_BASE = "https://data.alpaca.markets"
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")  # used when engine='claude'
+# Service account Cloud Scheduler uses to call the scheduled-run endpoint (Stage B). The
+# scheduled endpoint accepts an OIDC token from ONLY this identity. Empty = scheduling off.
+CRON_SA_EMAIL = os.environ.get("CRON_SA_EMAIL", "").lower()
 
 app = FastAPI()
 app.add_middleware(
@@ -58,6 +61,70 @@ def _secret(name: str) -> str:
     client = secretmanager.SecretManagerServiceClient()
     path = f"projects/{PROJECT_ID}/secrets/{name}/versions/latest"
     return client.access_secret_version(name=path).payload.data.decode("utf-8")
+
+
+# ── Firestore: autopilot config + run log (Stage B) ─────────────────────────────
+# Stores the autopilot config (so the unattended scheduler can read it without a browser)
+# and a log of each scheduled run. Free-tier usage. Lazily initialized so the rest of the
+# service works even before Firestore is enabled.
+_AUTOPILOT_DEFAULTS = {
+    "enabled":    False,     # master switch for SCHEDULED trading
+    "killSwitch": False,     # halts everything when true
+    "engine":     "ai",      # 'ai' | 'rules'
+    "cadence":    "daily",   # informational; the real schedule is the Cloud Scheduler job
+    "watchlist":  [],
+    "themes":     [],
+    "riskLimits": {},
+}
+
+
+@functools.lru_cache(maxsize=1)
+def _firestore():
+    from google.cloud import firestore  # imported lazily; optional dependency at runtime
+    return firestore.Client(project=PROJECT_ID)
+
+
+def _autopilot_doc():
+    return _firestore().collection("autotrader").document("autopilot")
+
+
+def _get_autopilot_config() -> dict:
+    snap = _autopilot_doc().get()
+    cfg = dict(_AUTOPILOT_DEFAULTS)
+    if snap.exists:
+        cfg.update({k: v for k, v in (snap.to_dict() or {}).items() if v is not None})
+    return cfg
+
+
+def _save_autopilot_config(patch: dict) -> dict:
+    allowed = {"enabled", "killSwitch", "engine", "cadence", "watchlist", "themes", "riskLimits"}
+    clean = {k: patch[k] for k in allowed if k in patch}
+    if clean.get("engine") not in (None, "ai", "rules"):
+        clean["engine"] = "ai"
+    _autopilot_doc().set(clean, merge=True)
+    return _get_autopilot_config()
+
+
+def _log_autopilot_run(summary: dict) -> None:
+    from google.cloud import firestore
+    doc = {**summary, "ts": firestore.SERVER_TIMESTAMP, "trigger": summary.get("trigger", "scheduled")}
+    # Keep the log compact — store action essentials, not the full Alpaca order objects.
+    doc["actions"] = [{k: a.get(k) for k in ("symbol", "side", "dollars", "qty", "status", "reason")}
+                      for a in (summary.get("actions") or [])][:25]
+    _firestore().collection("autotrader").document("autopilot").collection("runs").add(doc)
+
+
+def _recent_autopilot_runs(limit: int = 20) -> list:
+    from google.cloud import firestore
+    q = (_firestore().collection("autotrader").document("autopilot").collection("runs")
+         .order_by("ts", direction=firestore.Query.DESCENDING).limit(limit))
+    out = []
+    for d in q.stream():
+        r = d.to_dict() or {}
+        ts = r.get("ts")
+        r["ts"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
 
 
 def _alpaca_get(path: str, params: dict | None = None):
@@ -509,23 +576,16 @@ def _claude_autonomous(summary, risk_limits, account, positions, themes=None):
     return out
 
 
-@app.post("/api/autonomous/run")
-async def autonomous_run(request: Request):
-    _require_owner(request)
-    if not ALPACA_PAPER:
-        raise HTTPException(status_code=403, detail="Live trading is not enabled")
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
+def _run_cycle(engine, risk_limits, watchlist, themes, kill_switch, trigger="manual"):
+    """One paper trading cycle: decide (AI/rules), enforce every guardrail, place orders.
+    Returns a summary dict. Shared by the on-demand endpoint and the scheduler (Stage B)."""
+    engine      = "rules" if str(engine).lower() == "rules" else "ai"
+    watchlist   = [str(s).upper().strip() for s in (watchlist or []) if str(s).strip()][:25]
+    risk_limits = risk_limits or {}
 
-    engine      = "rules" if str(body.get("engine", "ai")).lower() == "rules" else "ai"
-    risk_limits = body.get("riskLimits") or {}
-    watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
-    themes      = body.get("themes") or []
-
-    if body.get("killSwitch"):
-        return {"halted": True, "reason": "Kill switch is on — no trades placed.", "engine": engine, "actions": []}
+    if kill_switch:
+        return {"halted": True, "reason": "Kill switch is on — no trades placed.",
+                "engine": engine, "trigger": trigger, "actions": [], "placedCount": 0}
 
     # Snapshot the account state.
     try:
@@ -635,4 +695,101 @@ async def autonomous_run(request: Request):
         "evaluated": len(proposed),
         "placedCount": placed,
         "actions": results,
+        "trigger": trigger,
     }
+
+
+# ── On-demand cycle (Stage A) + scheduled cycle (Stage B) ─────────────────────
+@app.post("/api/autonomous/run")
+async def autonomous_run(request: Request):
+    _require_owner(request)
+    if not ALPACA_PAPER:
+        raise HTTPException(status_code=403, detail="Live trading is not enabled")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    try:
+        return _run_cycle(body.get("engine", "ai"), body.get("riskLimits") or {},
+                          body.get("watchlist") or [], body.get("themes") or [],
+                          bool(body.get("killSwitch")), trigger="manual")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca")
+
+
+def _require_cron(request: Request) -> None:
+    """Authenticate the scheduler: accept a Google OIDC token from CRON_SA_EMAIL only."""
+    if not CRON_SA_EMAIL:
+        raise HTTPException(status_code=503, detail="Scheduling is not configured")
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = auth.split(" ", 1)[1]
+    try:
+        resp = requests.get(TOKENINFO_URL, params={"id_token": token}, timeout=10)
+    except requests.RequestException:
+        raise HTTPException(status_code=503, detail="Auth check failed")
+    if resp.status_code != 200 or (resp.json().get("email") or "").lower() != CRON_SA_EMAIL:
+        raise HTTPException(status_code=403, detail="Not the scheduler identity")
+
+
+@app.post("/api/autopilot/scheduled-run")
+async def autopilot_scheduled_run(request: Request):
+    """Called by Cloud Scheduler (OIDC). Reads config from Firestore, runs a cycle if enabled,
+    and writes a run-log entry. The owner never needs a browser open for this to work."""
+    _require_cron(request)
+    if not ALPACA_PAPER:
+        raise HTTPException(status_code=403, detail="Live trading is not enabled")
+    try:
+        cfg = _get_autopilot_config()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Config unavailable: {str(e)[:120]}")
+
+    if not cfg.get("enabled") or cfg.get("killSwitch"):
+        summary = {"halted": True, "engine": cfg.get("engine", "ai"), "trigger": "scheduled",
+                   "actions": [], "placedCount": 0,
+                   "reason": "Autopilot is disabled." if not cfg.get("enabled") else "Kill switch is on."}
+    else:
+        try:
+            summary = _run_cycle(cfg.get("engine", "ai"), cfg.get("riskLimits") or {},
+                                 cfg.get("watchlist") or [], cfg.get("themes") or [],
+                                 False, trigger="scheduled")
+        except Exception as e:
+            summary = {"error": str(e)[:200], "engine": cfg.get("engine", "ai"),
+                       "trigger": "scheduled", "actions": [], "placedCount": 0}
+    try:
+        _log_autopilot_run(summary)
+    except Exception as e:
+        print("autopilot run-log write failed:", e)
+    return summary
+
+
+@app.get("/api/autopilot/config")
+def autopilot_config_get(request: Request):
+    _require_owner(request)
+    try:
+        return _get_autopilot_config()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Firestore not ready: {str(e)[:120]}")
+
+
+@app.put("/api/autopilot/config")
+async def autopilot_config_put(request: Request):
+    _require_owner(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    try:
+        return _save_autopilot_config(body)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Firestore not ready: {str(e)[:120]}")
+
+
+@app.get("/api/autopilot/runs")
+def autopilot_runs_get(request: Request):
+    _require_owner(request)
+    try:
+        return {"runs": _recent_autopilot_runs(20)}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Firestore not ready: {str(e)[:120]}")

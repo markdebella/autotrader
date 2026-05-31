@@ -442,26 +442,63 @@ function AutopilotView() {
   return {
     engine: 'ai',          // 'ai' (default) | 'rules'
     killSwitch: false,
+    enabled: false,        // scheduled (unattended) trading on/off — Stage B
+    scheduleReady: true,   // false if the backend config store (Firestore) isn't set up yet
     running: false,
-    lastRun: null,         // last cycle's backend summary (ephemeral; trades persist to Drive)
+    lastRun: null,         // last on-demand cycle summary (ephemeral; trades persist to Drive)
     lastRunAt: null,
+    runs: [],              // scheduled-run history from Firestore
 
-    init() {
-      const ap = (Alpine.store('data').settings || {}).autopilot || {};
-      this.engine = ap.engine === 'rules' ? 'rules' : 'ai';
-      this.killSwitch = !!ap.killSwitch;
+    async init() {
+      // The backend (Firestore) is the source of truth so the scheduler can read it with no
+      // browser open. Fall back to local prefs if Stage B isn't deployed yet.
+      try {
+        const cfg = await Api.getAutopilotConfig();
+        this.engine = cfg.engine === 'rules' ? 'rules' : 'ai';
+        this.killSwitch = !!cfg.killSwitch;
+        this.enabled = !!cfg.enabled;
+        this.scheduleReady = true;
+      } catch (e) {
+        const ap = (Alpine.store('data').settings || {}).autopilot || {};
+        this.engine = ap.engine === 'rules' ? 'rules' : 'ai';
+        this.killSwitch = !!ap.killSwitch;
+        this.scheduleReady = false;
+      }
+      this.loadRuns();
     },
 
     get actions() { return this.lastRun?.actions || []; },
 
-    /** Persist engine + kill-switch to settings.autopilot in Drive. */
+    /** Push config to the backend (Firestore) so the scheduler uses it; snapshot focus + limits. */
     async _saveConfig() {
       const settings = Alpine.store('data').settings || {};
-      settings.autopilot = { engine: this.engine, killSwitch: this.killSwitch };
-      Alpine.store('data').settings = { ...settings };
-      try { await Drive.saveSettings(settings); }
-      catch (e) { console.error('Save autopilot config failed:', e); Toast.error('Could not save autopilot settings.'); }
+      const patch = {
+        engine:     this.engine,
+        killSwitch: this.killSwitch,
+        enabled:    this.enabled,
+        watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
+        themes:     settings.themes     || CONFIG.defaultThemes,
+        riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
+      };
+      try {
+        await Api.saveAutopilotConfig(patch);
+        this.scheduleReady = true;
+      } catch (e) {
+        // Stage B backend not available — keep on-demand prefs in Drive so they still persist.
+        console.warn('Backend autopilot config unavailable; saving locally only.', e);
+        this.scheduleReady = false;
+        settings.autopilot = { engine: this.engine, killSwitch: this.killSwitch };
+        Alpine.store('data').settings = { ...settings };
+        try { await Drive.saveSettings(settings); } catch {}
+      }
     },
+
+    async loadRuns() {
+      try { this.runs = (await Api.getAutopilotRuns()).runs || []; }
+      catch { this.runs = []; }
+    },
+
+    fmtTime(t) { try { return Utils.formatDateTime(t); } catch { return t || ''; } },
 
     async setEngine(e) { this.engine = e === 'rules' ? 'rules' : 'ai'; await this._saveConfig(); },
 
@@ -469,6 +506,18 @@ function AutopilotView() {
       this.killSwitch = !this.killSwitch;
       await this._saveConfig();
       Toast.info(this.killSwitch ? 'Kill switch ON — autopilot is halted.' : 'Kill switch off — autopilot can trade.');
+    },
+
+    async toggleEnabled() {
+      this.enabled = !this.enabled;
+      await this._saveConfig();
+      if (!this.scheduleReady) {
+        Toast.error('Scheduled trading needs the Stage B backend (Firestore + scheduler). See Settings → docs.');
+        return;
+      }
+      Toast.success(this.enabled
+        ? 'Scheduled autopilot ON — it will trade on each scheduled run.'
+        : 'Scheduled autopilot off — scheduled runs will do nothing.');
     },
 
     actionLabel(a) {

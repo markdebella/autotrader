@@ -112,7 +112,53 @@ For the Alpaca keys, regenerate them in the Alpaca dashboard first, then update 
 `alpaca-paper-key` and `alpaca-paper-secret`. Old versions remain until you disable/destroy
 them (`gcloud secrets versions list SECRET_NAME`).
 
+## Scheduled autopilot (Stage B)
+Lets the autopilot trade **unattended on a timer**, still paper and still inside every risk
+limit. Config + kill switch live in **Firestore** (so the scheduler reads them with no browser
+open); **Cloud Scheduler** triggers the run, authenticated by a dedicated service account's
+**OIDC token** (no shared secrets). All within the always-free tier.
+
+```bash
+# Enable the APIs
+gcloud services enable firestore.googleapis.com cloudscheduler.googleapis.com
+
+# Create the Firestore database in Native mode (once per project; location is permanent)
+gcloud firestore databases create --location="$REGION" --type=firestore-native
+
+# Let the backend service account read/write Firestore
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${SA}" --role="roles/datastore.user"
+
+# Dedicated identity the scheduler uses to call the run endpoint
+gcloud iam service-accounts create autotrader-cron --display-name="AutoTrader scheduler"
+CRON_SA="autotrader-cron@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Redeploy the backend, telling it which identity may trigger scheduled runs
+gcloud run deploy autotrader-api --source ./service --region "$REGION" \
+  --service-account "$SA" --allow-unauthenticated --min-instances=0 --max-instances=2 \
+  --set-env-vars "^;^GCP_PROJECT=${PROJECT_ID};OWNER_EMAIL=${OWNER_EMAIL};OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID};ALLOWED_ORIGINS=${ORIGINS};ALPACA_PAPER=true;CRON_SA_EMAIL=${CRON_SA}"
+
+# Grab the service URL, then create the schedule (weekdays ~5 min after the open)
+URL="$(gcloud run services describe autotrader-api --region "$REGION" --format='value(status.url)')"
+gcloud scheduler jobs create http autotrader-autopilot \
+  --location="$REGION" \
+  --schedule="35 9 * * 1-5" \
+  --time-zone="America/New_York" \
+  --uri="${URL}/api/autopilot/scheduled-run" \
+  --http-method=POST \
+  --oidc-service-account-email="$CRON_SA" \
+  --oidc-token-audience="${URL}"
+```
+Then in the app: **Autopilot → Scheduled trading: ON**, pick the engine, and confirm your
+Investing Focus + risk limits. The **kill switch** halts scheduled runs instantly (it's read
+from Firestore on every run). Pause entirely anytime with
+`gcloud scheduler jobs pause autotrader-autopilot --location="$REGION"`.
+
+Each scheduled run appends to a Firestore run log (shown under Autopilot → Scheduled run
+history), and any orders it places appear in Recent Trades when the dashboard next refreshes.
+
 ## Done
-The dashboard already points at this service (`CONFIG.apiBaseUrl`), holds no keys, and
-calls `/api/portfolio`, `/api/recommendations/generate`, and `/api/orders` with your Google
-access token. Remaining roadmap work (scheduled executor, live keys) builds on this.
+The dashboard points at this service (`CONFIG.apiBaseUrl`), holds no keys, and calls
+`/api/portfolio`, `/api/recommendations/generate`, `/api/orders`, the chart endpoints, and the
+autopilot endpoints with your Google access token. The only remaining roadmap work is **live
+keys** — separate Secret Manager secrets, a deliberate promotion, miniscule size.
