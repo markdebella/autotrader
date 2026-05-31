@@ -19,80 +19,17 @@
     </div>
   </div>
 
-  <!-- Alpaca brokerage connection -->
+  <!-- Alpaca brokerage connection (keys are managed in the cloud — see SECURITY.md) -->
   <div class="card" style="margin-bottom:var(--space-md)">
     <div class="card__title">Alpaca Brokerage Connection</div>
-
-    <!-- Onboarding steps (shown when not connected) -->
-    <template x-if="!apiKeyId">
-      <div style="margin-top:var(--space-md)">
-        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:var(--space-md)">
-          AutoTrader connects to <a href="https://alpaca.markets" target="_blank">Alpaca Markets</a>, a commission-free brokerage with a developer API. Follow these steps to get started:
-        </p>
-        <ol class="onboarding-steps">
-          <li>Create a free account at <a href="https://app.alpaca.markets/signup" target="_blank">alpaca.markets/signup</a></li>
-          <li>In your Alpaca dashboard, go to <strong>API Keys</strong> and click <strong>Generate New Key</strong></li>
-          <li>Copy your <strong>API Key ID</strong> and <strong>Secret Key</strong> into the fields below</li>
-          <li>Click <strong>Test Connection</strong> to verify everything works</li>
-          <li>You start with <strong>$100,000 in paper (simulated) money</strong> — no real funds needed!</li>
-        </ol>
-      </div>
-    </template>
-
-    <!-- API key inputs -->
-    <div style="margin-top:var(--space-lg)">
-      <div class="form-group">
-        <label class="form-label">API Key ID</label>
-        <input type="text" class="form-input" placeholder="PK..."
-               x-model="apiKeyId" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Secret Key</label>
-        <div style="position:relative">
-          <input :type="showSecret ? 'text' : 'password'" class="form-input" placeholder="Your secret key"
-                 x-model="apiSecretKey" autocomplete="off" style="padding-right:3rem">
-          <button class="btn-ghost" @click="showSecret = !showSecret"
-                  style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:var(--space-xs)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round">
-              <g x-show="!showSecret"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></g>
-              <g x-show="showSecret"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></g>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Paper / Live toggle -->
-      <div class="form-group">
-        <label class="form-label">Trading Mode</label>
-        <div style="display:flex;gap:var(--space-sm)">
-          <button class="btn btn-sm" :class="paperMode ? 'btn-success' : 'btn-secondary'" @click="paperMode = true">
-            Paper (Simulated)
-          </button>
-          <button class="btn btn-sm" :class="!paperMode ? 'btn-danger' : 'btn-secondary'" @click="confirmLiveMode()">
-            Live (Real Money)
-          </button>
-        </div>
-        <div class="form-hint" x-show="paperMode">Paper mode uses $100K of simulated money. Safe for learning.</div>
-        <div class="form-hint" style="color:var(--danger)" x-show="!paperMode">Live mode trades with real money. Proceed with caution.</div>
-      </div>
-
-      <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" @click="testConnection()" :disabled="!apiKeyId || !apiSecretKey || testing">
-          <span x-show="!testing">Test Connection</span>
-          <span x-show="testing">Testing...</span>
-        </button>
-        <button class="btn btn-secondary btn-sm" @click="saveCredentials()" :disabled="!apiKeyId || !apiSecretKey">
-          Save Credentials
-        </button>
-      </div>
-
-      <!-- Connection status -->
-      <template x-if="connectionStatus">
-        <div style="margin-top:var(--space-md);padding:var(--space-sm) var(--space-md);border-radius:var(--radius-md);font-size:0.85rem"
-             :style="connectionStatus.ok ? 'background:var(--gain-bg);color:var(--gain);border:1px solid rgba(34,197,94,0.3)' : 'background:var(--loss-bg);color:var(--loss);border:1px solid rgba(239,68,68,0.3)'"
-             x-text="connectionStatus.message">
-        </div>
-      </template>
+    <div style="color:var(--text-secondary);font-size:0.9rem;line-height:1.5;margin-top:var(--space-sm);display:flex;flex-direction:column;gap:var(--space-sm)">
+      <p>Your Alpaca API keys are <strong style="color:var(--text-primary)">never entered or stored in this app</strong>.
+         They live only in <strong style="color:var(--text-primary)">Google Secret Manager</strong> and are used solely by
+         the AutoTrader backend service, which this dashboard reads from. The browser holds no trading keys.</p>
+      <p>Paper vs. live trading is set on the backend service (currently <strong style="color:var(--text-primary)">paper mode</strong>).
+         To change or rotate keys, update the secrets in your Google Cloud project — see
+         <code>SECURITY.md</code> and <code>docs/gcp-setup.md</code> in the repo.</p>
+      <p style="font-size:0.82rem;color:var(--text-muted)">Backend: <span x-text="CONFIG.apiBaseUrl || 'not configured'"></span></p>
     </div>
   </div>
 

@@ -72,7 +72,9 @@ const Auth = (() => {
       // 1. OAuth2 token client (Drive access)
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CONFIG.clientId,
-        scope:     'https://www.googleapis.com/auth/drive.file',
+        // drive.file → store app data in Drive; userinfo.email → lets the backend service
+        // verify the access token belongs to the owner (via Google's tokeninfo endpoint).
+        scope:     'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
         callback:  handleToken,
       });
 

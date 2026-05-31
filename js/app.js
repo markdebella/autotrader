@@ -156,11 +156,12 @@ const App = {
         data.recommendations = seeded.recommendations;
       }
 
-      // Initialize Alpaca if credentials exist
-      Alpine.store('ui').paperMode = data.settings.brokerage.paperMode;
-      if (data.settings.brokerage.apiKeyId && data.settings.brokerage.apiSecretKey) {
-        Alpaca.init(data.settings);
-        data.alpacaConfigured = Alpaca.isConfigured();
+      // Portfolio data now comes from the backend service (the Alpaca keys live in
+      // Secret Manager and never touch the browser — see SECURITY.md). "Connected"
+      // means the backend service URL is configured.
+      Alpine.store('ui').paperMode = data.settings?.brokerage?.paperMode ?? true;
+      data.alpacaConfigured = Api.isConfigured();
+      if (data.alpacaConfigured) {
         await App.refreshPortfolio();
       }
 
@@ -177,45 +178,30 @@ const App = {
   },
 
   /**
-   * Refresh portfolio data from Alpaca.
-   * Uses allSettled so one failing endpoint doesn't blank the whole dashboard —
-   * each piece that succeeds is shown, and we report exactly which ones failed.
+   * Refresh portfolio data from the backend service (which holds the Alpaca keys in
+   * Secret Manager). The service returns { account, positions, orders, clock } in
+   * Alpaca's raw JSON shape — the same shape the views already render.
    */
   async refreshPortfolio() {
-    if (!Alpaca.isConfigured()) return;
+    if (!Api.isConfigured()) return;
 
     const portfolio = Alpine.store('portfolio');
-    const calls = [
-      { key: 'account',   label: 'account',      fn: () => Alpaca.getAccount() },
-      { key: 'positions', label: 'positions',    fn: () => Alpaca.getPositions() },
-      { key: 'orders',    label: 'open orders',  fn: () => Alpaca.getOrders({ status: 'open' }) },
-      { key: 'clock',     label: 'market clock', fn: () => Alpaca.getClock() },
-    ];
-
-    const results = await Promise.allSettled(calls.map(c => c.fn()));
-    const failed = [];
-    results.forEach((res, i) => {
-      if (res.status === 'fulfilled') {
-        portfolio[calls[i].key] = res.value;
-      } else {
-        console.error(`Alpaca ${calls[i].key} fetch failed:`, res.reason);
-        failed.push(calls[i].label);
-      }
-    });
-
-    portfolio.lastUpdated = Utils.nowISO();
-    if (failed.length) {
-      portfolio.error = `Couldn't load ${failed.join(', ')} from Alpaca.`;
-      Toast.error(portfolio.error);
-    } else {
-      portfolio.error = null;
+    try {
+      const data = await Api.getPortfolio();
+      portfolio.account     = data.account ?? null;
+      portfolio.positions   = data.positions ?? [];
+      portfolio.orders      = data.orders ?? [];
+      portfolio.clock       = data.clock ?? null;
+      portfolio.error       = null;
+      portfolio.lastUpdated = Utils.nowISO();
+    } catch (err) {
+      console.error('Portfolio refresh error:', err);
+      portfolio.error = 'Could not load your portfolio from the backend service. '
+                      + 'Make sure it is deployed and your keys are in Secret Manager.';
+      Toast.error('Could not load your portfolio from the backend.');
     }
-
-    // Resolve friendly names for any held/ordered tickers (fire-and-forget).
-    const symbols = new Set();
-    (portfolio.positions || []).forEach(p => symbols.add(p.symbol));
-    (portfolio.orders || []).forEach(o => symbols.add(o.symbol));
-    Company.ensure([...symbols]);
+    // Friendly names come from the curated CONFIG.companyNames map now; the browser holds
+    // no Alpaca keys, so Company.ensure() (which would call Alpaca) simply no-ops.
   },
 
 };

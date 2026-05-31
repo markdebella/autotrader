@@ -21,9 +21,7 @@ import os
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from google.auth.transport import requests as google_requests
 from google.cloud import secretmanager
-from google.oauth2 import id_token
 
 # ── Config (set at deploy time; NONE of these are secrets) ──────────────────────
 PROJECT_ID      = os.environ["GCP_PROJECT"]              # GCP project holding the secrets
@@ -61,17 +59,36 @@ def _alpaca_get(path: str, params: dict | None = None):
 
 
 # ── Auth: only the signed-in owner may call ─────────────────────────────────────
+TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+
+
 def _require_owner(request: Request) -> None:
+    """Verify the caller's Google OAuth **access token** via Google's tokeninfo endpoint.
+
+    We verify an access token (not an ID token) because Google's ID-token / One Tap flow
+    doesn't work on http://localhost during development, whereas the access token the
+    dashboard already obtains works on both localhost and the live site. The token only
+    proves identity (it's issued for this app, to the owner) — it carries no Alpaca
+    credentials, which live solely in Secret Manager.
+    """
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = auth.split(" ", 1)[1]
     try:
-        claims = id_token.verify_oauth2_token(token, google_requests.Request(), OAUTH_CLIENT_ID)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    if not claims.get("email_verified") or claims.get("email", "").lower() != OWNER_EMAIL:
+        resp = requests.get(TOKENINFO_URL, params={"access_token": token}, timeout=10)
+    except requests.RequestException:
+        raise HTTPException(status_code=503, detail="Auth check failed")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    info = resp.json()
+    email = (info.get("email") or "").lower()
+    verified = str(info.get("email_verified", "")).lower() == "true"
+    audience = info.get("aud") or info.get("azp")
+    if not email or not verified or email != OWNER_EMAIL:
         raise HTTPException(status_code=403, detail="Not the owner")
+    if audience != OAUTH_CLIENT_ID:
+        raise HTTPException(status_code=403, detail="Token not issued for this app")
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────────
