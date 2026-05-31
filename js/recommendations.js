@@ -79,29 +79,65 @@ const Recs = (() => {
 
   /**
    * A ready-to-paste prompt for Claude Code (uses the user's Claude subscription — no API
-   * key) to generate AI trade ideas and write them straight to the user's Drive. The app
-   * then reads recommendations.json and shows them in the Ideas feed.
+   * key) to generate AI trade ideas as JSON. You then paste the JSON into the app's
+   * "Import ideas" box; the browser fills in the rest and saves to Drive.
    */
   function claudeCodePrompt(watchlist, riskLimits) {
     const rl = riskLimits || {};
     const list = (watchlist || []).join(', ');
     return [
-      'Help me generate PAPER-trading ideas for my AutoTrader app and save them to my Google Drive.',
+      'Help me generate PAPER-trading ideas for my AutoTrader app.',
       '',
       `Watchlist: ${list}`,
       `Risk limits: max $${rl.maxOrderDollars ?? 10} per order, max $${rl.maxPositionDollars ?? 25} per position, max ${rl.maxTradesPerDay ?? 3} trades/day.`,
       '',
-      '1. Analyze the watchlist (use the Alpaca MCP for quotes/history if available, otherwise your best judgment). Propose UP TO 5 small starter ideas. Education-first, not financial advice. Prefer buys on pullbacks; only suggest a sell for a symbol I already hold.',
+      '1. Analyze the watchlist (use the Alpaca MCP for quotes/history if available, otherwise your best judgment). Propose UP TO 5 small starter ideas. Education-first, not financial advice. Prefer buys on pullbacks; only suggest a sell for a symbol I already hold. Keep each idea\'s dollars <= my max-order limit.',
       '',
-      '2. Format each idea as exactly this JSON object (dollars must be <= the max-order limit):',
-      '   { "id": "<uuid>", "symbol": "AAPL", "side": "buy"|"sell", "orderType": "market", "dollars": <number>, "qty": null, "limitPrice": null, "reasoning": "<1-2 plain sentences>", "guardrail": { "passed": true, "notes": "<how it fits my limits>" }, "createdAt": "<ISO timestamp now>", "decidedAt": null, "status": "pending", "source": "claude-code" }',
+      '2. Output ONLY a JSON array in a code block, where each item is exactly:',
+      '   { "symbol": "AAPL", "side": "buy"|"sell", "dollars": <number>, "reasoning": "<1-2 plain sentences>" }',
       '',
-      '3. In my Google Drive, open AutoTrader/recommendations.json (create it if missing). KEEP any items whose status is "approved" or "denied"; drop the rest; put your new ideas first. Write the whole file as:',
-      `   { "version": ${SCHEMA_VERSION}, "updatedAt": "<ISO timestamp now>", "recommendations": [ ...new ideas..., ...kept approved/denied... ] }`,
-      '',
-      'Then tell me how many ideas you wrote. I\'ll click Refresh in the app to see them.',
+      'I\'ll paste that array into the app\'s "Import ideas" box — it fills in the IDs, guardrail checks, and timestamps automatically.',
     ].join('\n');
   }
 
-  return { SCHEMA_VERSION, mcpCommand, sizeLabel, sampleDoc, claudeCodePrompt };
+  /** Risk-limit check for an idea (mirrors the backend guardrail). */
+  function guardrail(dollars, riskLimits) {
+    const rl = riskLimits || {};
+    const maxOrder = Number(rl.maxOrderDollars ?? 10);
+    const maxPos   = Number(rl.maxPositionDollars ?? 25);
+    const passed = dollars <= maxOrder && dollars <= maxPos;
+    return {
+      passed,
+      notes: passed
+        ? `$${dollars} order ≤ $${maxOrder} max-order and ≤ $${maxPos} max-per-position.`
+        : `$${dollars} exceeds a risk limit (max-order $${maxOrder}, max-per-position $${maxPos}).`,
+    };
+  }
+
+  /** Turn a loose imported idea ({symbol, side, dollars, reasoning}) into a full recommendation. */
+  function normalizeImported(raw, riskLimits) {
+    const symbol = String(raw.symbol || '').toUpperCase().trim();
+    if (!symbol) return null;
+    const dollars = raw.dollars != null ? Number(raw.dollars) : null;
+    const qty     = raw.qty != null ? Number(raw.qty) : null;
+    return {
+      id:         Utils.uuid(),
+      symbol,
+      side:       String(raw.side || 'buy').toLowerCase() === 'sell' ? 'sell' : 'buy',
+      orderType:  raw.orderType === 'limit' ? 'limit' : 'market',
+      dollars:    dollars != null && !isNaN(dollars) ? dollars : (qty == null ? Number(riskLimits?.maxOrderDollars ?? 10) : null),
+      qty:        qty != null && !isNaN(qty) ? qty : null,
+      limitPrice: raw.limitPrice != null ? Number(raw.limitPrice) : null,
+      reasoning:  String(raw.reasoning || '').trim() || 'Imported idea.',
+      guardrail:  raw.guardrail && typeof raw.guardrail.passed === 'boolean'
+                    ? raw.guardrail
+                    : guardrail(dollars != null && !isNaN(dollars) ? dollars : Number(riskLimits?.maxOrderDollars ?? 10), riskLimits),
+      createdAt:  Utils.nowISO(),
+      decidedAt:  null,
+      status:     'pending',
+      source:     raw.source || 'claude-code',
+    };
+  }
+
+  return { SCHEMA_VERSION, mcpCommand, sizeLabel, sampleDoc, claudeCodePrompt, guardrail, normalizeImported };
 })();

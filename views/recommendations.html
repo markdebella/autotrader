@@ -25,11 +25,31 @@
       <span x-show="generating">Generating…</span>
     </button>
     <button class="btn btn-secondary btn-sm" @click="copyClaudeCodePrompt()">Copy Claude Code prompt</button>
+    <button class="btn btn-secondary btn-sm" @click="toggleImport()" x-text="importOpen ? 'Cancel import' : 'Import ideas'"></button>
   </div>
   <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:var(--space-md)">
     <strong style="color:var(--text-secondary)">Rules</strong> — instant, free, deterministic.
-    <strong style="color:var(--text-secondary)">Claude Code prompt</strong> — AI ideas via your Claude subscription: paste it into Claude Code, which writes them to your Drive; then come back and Refresh.
+    <strong style="color:var(--text-secondary)">Claude Code prompt</strong> — AI ideas via your Claude subscription: run it in Claude Code, then <strong style="color:var(--text-secondary)">Import</strong> the JSON it outputs (no API key needed).
   </p>
+
+  <!-- Import ideas (paste JSON) -->
+  <template x-if="importOpen">
+    <div class="card" style="margin-bottom:var(--space-md)">
+      <div class="card__title">Import ideas</div>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin:var(--space-sm) 0">
+        Paste a JSON array of ideas. Each item needs at least <code>symbol</code>, plus optional
+        <code>side</code>, <code>dollars</code>, and <code>reasoning</code>. The app fills in the IDs,
+        guardrail checks, and timestamps, and saves to your Drive.
+      </p>
+      <textarea class="form-input" x-model="importText" rows="8"
+                style="font-family:monospace;font-size:0.8rem;width:100%"
+                placeholder='[ { "symbol": "AAPL", "side": "buy", "dollars": 10, "reasoning": "..." } ]'></textarea>
+      <div style="margin-top:var(--space-sm);display:flex;gap:var(--space-sm)">
+        <button class="btn btn-primary btn-sm" @click="importIdeas()" :disabled="!importText.trim()">Save imported ideas</button>
+        <button class="btn btn-secondary btn-sm" @click="toggleImport()">Cancel</button>
+      </div>
+    </div>
+  </template>
 
   <!-- Empty state -->
   <template x-if="recs.length === 0">

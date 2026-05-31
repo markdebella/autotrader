@@ -180,6 +180,10 @@ function RecommendationsView() {
     },
 
     generating: false,
+    importOpen: false,
+    importText: '',
+
+    toggleImport() { this.importOpen = !this.importOpen; },
 
     sizeLabel(rec)  { return Recs.sizeLabel(rec); },
     mcpCommand(rec) { return Recs.mcpCommand(rec); },
@@ -228,10 +232,47 @@ function RecommendationsView() {
       );
       try {
         await navigator.clipboard.writeText(prompt);
-        Toast.success('Claude Code prompt copied — paste it into Claude Code, then Refresh here.');
+        Toast.success('Prompt copied — run it in Claude Code, then paste its JSON into "Import ideas".');
       } catch {
         console.log(prompt);
         Toast.error('Could not copy automatically — the prompt is in the browser console.');
+      }
+    },
+
+    /** Import ideas pasted as JSON (an array, or a { recommendations: [...] } doc). */
+    async importIdeas() {
+      let parsed;
+      try {
+        parsed = JSON.parse(this.importText);
+      } catch {
+        Toast.error('That is not valid JSON — paste the JSON array of ideas.');
+        return;
+      }
+      const rawList = Array.isArray(parsed) ? parsed
+                    : (Array.isArray(parsed?.recommendations) ? parsed.recommendations : null);
+      if (!rawList) { Toast.error('Expected a JSON array of ideas.'); return; }
+
+      const settings   = Alpine.store('data').settings || {};
+      const riskLimits = settings.riskLimits || CONFIG.defaultRiskLimits;
+      const fresh = rawList.map(r => Recs.normalizeImported(r, riskLimits)).filter(Boolean).slice(0, 25);
+      if (!fresh.length) { Toast.error('No valid ideas found (each needs at least a "symbol").'); return; }
+
+      // Replace old pending/sample ideas with the imported batch; keep decided ones.
+      const kept = (Alpine.store('data').recommendations || [])
+        .filter(r => r.status === 'approved' || r.status === 'denied');
+      const list = [...fresh, ...kept];
+      Alpine.store('data').recommendations = list;
+      try {
+        await Drive.saveRecommendations({
+          version: Recs.SCHEMA_VERSION, updatedAt: Utils.nowISO(), recommendations: list,
+        });
+        Company.ensure(fresh.map(r => r.symbol));
+        this.importText = '';
+        this.importOpen = false;
+        Toast.success(`Imported ${fresh.length} idea${fresh.length === 1 ? '' : 's'}.`);
+      } catch (err) {
+        console.error('Import save failed:', err);
+        Toast.error('Imported locally, but could not save to Drive.');
       }
     },
 
