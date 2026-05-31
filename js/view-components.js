@@ -99,6 +99,7 @@ function Analytics() {
 function Settings() {
   return {
     riskLimits: { ...CONFIG.defaultRiskLimits },
+    engine: 'claude',   // recommendation engine: 'claude' (AI) | 'rules'
 
     get driveFolderId() { return Drive.getFolderId(); },
 
@@ -107,7 +108,17 @@ function Settings() {
       if (settings) {
         // Merge over defaults so existing users get any newly-added limit fields.
         this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
+        this.engine = settings.recommendations?.engine || 'claude';
       }
+    },
+
+    async setEngine(engine) {
+      this.engine = engine;
+      const settings = Alpine.store('data').settings;
+      settings.recommendations = { ...(settings.recommendations || {}), engine };
+      Alpine.store('data').settings = { ...settings };
+      await Drive.saveSettings(settings);
+      Toast.success(`Ideas engine set to ${engine === 'rules' ? 'Rules-based' : 'Claude (AI)'}.`);
     },
 
     async saveRiskLimits() {
@@ -179,8 +190,50 @@ function RecommendationsView() {
       return (Alpine.store('data').recommendations || []).filter(r => r.status === 'pending').length;
     },
 
+    generating: false,
+
+    get engineLabel() {
+      const e = (Alpine.store('data').settings?.recommendations?.engine) || 'claude';
+      return e === 'rules' ? 'Rules' : 'Claude (AI)';
+    },
+
     sizeLabel(rec)  { return Recs.sizeLabel(rec); },
     mcpCommand(rec) { return Recs.mcpCommand(rec); },
+
+    /** Ask the backend to generate a fresh batch of ideas; keep approved/denied history. */
+    async generate() {
+      if (this.generating) return;
+      this.generating = true;
+      try {
+        const settings = Alpine.store('data').settings || {};
+        const engine = settings.recommendations?.engine || 'claude';
+        const res = await Api.generateRecommendations({
+          engine,
+          watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
+          riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
+        });
+        const fresh = res.recommendations || [];
+        // Replace old pending/sample ideas with the new batch; preserve decided ones.
+        const kept = (Alpine.store('data').recommendations || [])
+          .filter(r => r.status === 'approved' || r.status === 'denied');
+        const list = [...fresh, ...kept];
+        Alpine.store('data').recommendations = list;
+        await Drive.saveRecommendations({
+          version: Recs.SCHEMA_VERSION, updatedAt: Utils.nowISO(), recommendations: list,
+        });
+        Company.ensure(fresh.map(r => r.symbol));
+        if (res.fallback) {
+          Toast.info(`Claude was unavailable — generated ${fresh.length} rules-based idea${fresh.length === 1 ? '' : 's'}.`);
+        } else {
+          Toast.success(`Generated ${fresh.length} ${res.engine === 'claude' ? 'AI' : 'rules-based'} idea${fresh.length === 1 ? '' : 's'}.`);
+        }
+      } catch (err) {
+        console.error('Generate recommendations failed:', err);
+        Toast.error('Could not generate ideas. ' + (err.message || ''));
+      } finally {
+        this.generating = false;
+      }
+    },
 
     async approve(rec) {
       if (!rec.guardrail?.passed) return;       // never approve a limit-breaching idea

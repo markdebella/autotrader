@@ -25,5 +25,21 @@ const Api = (() => {
       }
       return resp.json();
     },
+
+    /** Ask the backend to generate trade ideas. engine: 'claude' | 'rules'. */
+    async generateRecommendations({ engine, watchlist, riskLimits }) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/recommendations/generate', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ engine, watchlist, riskLimits }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        throw new Error(`Backend ${resp.status}: ${body.slice(0, 200)}`);
+      }
+      return resp.json();
+    },
   };
 })();

@@ -15,8 +15,11 @@ Later (Phase 3) this same service gains a scheduled executor that places orders 
 hard risk limits; that's why it uses a real backend rather than the browser.
 """
 
+import datetime
 import functools
+import json
 import os
+import uuid
 
 import requests
 from fastapi import FastAPI, HTTPException, Request
@@ -31,13 +34,15 @@ ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").spli
 ALPACA_PAPER    = os.environ.get("ALPACA_PAPER", "true").lower() == "true"
 
 ALPACA_BASE = "https://paper-api.alpaca.markets" if ALPACA_PAPER else "https://api.alpaca.markets"
+ALPACA_DATA_BASE = "https://data.alpaca.markets"
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")  # used when engine='claude'
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_methods=["GET", "OPTIONS"],
-    allow_headers=["Authorization"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ── Secrets (fetched from Secret Manager once per instance, then cached) ────────
@@ -54,6 +59,16 @@ def _alpaca_get(path: str, params: dict | None = None):
         "APCA-API-SECRET-KEY": _secret("alpaca-paper-secret"),
     }
     resp = requests.get(ALPACA_BASE + path, headers=headers, params=params, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _alpaca_data_get(path: str, params: dict | None = None):
+    headers = {
+        "APCA-API-KEY-ID":     _secret("alpaca-paper-key"),
+        "APCA-API-SECRET-KEY": _secret("alpaca-paper-secret"),
+    }
+    resp = requests.get(ALPACA_DATA_BASE + path, headers=headers, params=params, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -111,3 +126,177 @@ def portfolio(request: Request):
         raise HTTPException(status_code=502, detail=f"Alpaca error: {e.response.status_code}")
     except requests.RequestException:
         raise HTTPException(status_code=502, detail="Could not reach Alpaca")
+
+
+# ── Recommendation generation (Phase 2) ─────────────────────────────────────────
+# The backend generates trade ideas: it has the market data and (for the Claude engine)
+# the Claude API key in Secret Manager. The browser triggers this and saves the result to
+# the user's Drive — neither the Alpaca nor the Claude key ever touches the browser.
+
+def _recent_bars(symbols):
+    """Daily bars for the last ~30 calendar days per symbol (free IEX feed)."""
+    if not symbols:
+        return {}
+    start = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+    data = _alpaca_data_get("/v2/stocks/bars", {
+        "symbols": ",".join(symbols),
+        "timeframe": "1Day",
+        "start": start,
+        "feed": "iex",
+        "limit": 10000,
+    })
+    return data.get("bars", {}) or {}
+
+
+def _summarize(bars_by_symbol):
+    """Compact per-symbol stats for the rules engine and the Claude prompt."""
+    out = {}
+    for sym, bars in bars_by_symbol.items():
+        closes = [b.get("c") for b in (bars or []) if b.get("c") is not None][-10:]
+        if len(closes) >= 3:
+            out[sym] = {
+                "last":  round(closes[-1], 2),
+                "avg10": round(sum(closes) / len(closes), 2),
+                "min10": round(min(closes), 2),
+                "max10": round(max(closes), 2),
+            }
+    return out
+
+
+def _guardrail(dollars, risk_limits):
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    max_pos   = float(risk_limits.get("maxPositionDollars", 25) or 25)
+    passed = dollars <= max_order and dollars <= max_pos
+    if passed:
+        notes = f"${dollars:.0f} order ≤ ${max_order:.0f} max-order and ≤ ${max_pos:.0f} max-per-position."
+    else:
+        notes = f"${dollars:.0f} exceeds a risk limit (max-order ${max_order:.0f}, max-per-position ${max_pos:.0f})."
+    return {"passed": passed, "notes": notes}
+
+
+def _make_rec(symbol, side, dollars, reasoning, risk_limits, source):
+    return {
+        "id":         str(uuid.uuid4()),
+        "symbol":     symbol,
+        "side":       "sell" if str(side).lower() == "sell" else "buy",
+        "orderType":  "market",
+        "dollars":    round(float(dollars), 2),
+        "qty":        None,
+        "limitPrice": None,
+        "reasoning":  reasoning,
+        "guardrail":  _guardrail(float(dollars), risk_limits),
+        "createdAt":  datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "decidedAt":  None,
+        "status":     "pending",
+        "source":     source,
+    }
+
+
+def _rules_recommendations(summary, risk_limits):
+    """Deterministic 'buy the dip' starter ideas: symbols >=2% below their ~10-day average."""
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    recs = []
+    for sym, s in summary.items():
+        if s["avg10"] and s["last"] < s["avg10"] * 0.98:
+            pct = (s["last"] - s["avg10"]) / s["avg10"] * 100
+            recs.append(_make_rec(
+                sym, "buy", max_order,
+                f"{sym} is trading {abs(pct):.1f}% below its recent average (${s['avg10']:.2f} vs ${s['last']:.2f}) "
+                f"— a modest pullback. A small starter buy fits a cautious, buy-the-dip, learn-by-doing approach.",
+                risk_limits, "rules",
+            ))
+    recs.sort(key=lambda r: r["symbol"])
+    return recs[:5]
+
+
+def _extract_json_array(text):
+    text = (text or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:]
+    start, end = text.find("["), text.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        text = text[start:end + 1]
+    return json.loads(text)
+
+
+def _claude_recommendations(summary, risk_limits, account):
+    """Ask Claude for up to 5 small starter ideas as strict JSON. Key from Secret Manager."""
+    api_key = _secret("claude-api-key")
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    system = (
+        "You are a cautious trading assistant for a SMALL PAPER (simulated) account. Propose at most 5 "
+        "small starter trade ideas. Education-first; this is NOT financial advice. Prefer buys of watchlist "
+        "names on pullbacks; only suggest a sell for a symbol the account already holds. Each idea's dollars "
+        f"must be <= {max_order:.0f} (the max-order limit). Return ONLY a JSON array (no prose, no code fence), "
+        'each item: {"symbol": str, "side": "buy"|"sell", "dollars": number, "reasoning": str (1-2 plain sentences)}.'
+    )
+    user = json.dumps({"riskLimits": risk_limits, "account": account, "marketData": summary})
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": CLAUDE_MODEL,
+            "max_tokens": 1024,
+            "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+            "messages": [{"role": "user", "content": user}],
+        },
+        timeout=40,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    text = "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
+    ideas = _extract_json_array(text)
+    recs = []
+    for idea in ideas[:5]:
+        sym = str(idea.get("symbol", "")).upper().strip()
+        if not sym:
+            continue
+        dollars = float(idea.get("dollars") or max_order)
+        recs.append(_make_rec(sym, idea.get("side", "buy"), dollars,
+                              str(idea.get("reasoning", "")).strip(), risk_limits, "claude"))
+    return recs
+
+
+@app.post("/api/recommendations/generate")
+async def generate_recommendations(request: Request):
+    _require_owner(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    engine      = "rules" if str(body.get("engine", "claude")).lower() == "rules" else "claude"
+    watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
+    risk_limits = body.get("riskLimits") or {}
+
+    try:
+        summary = _summarize(_recent_bars(watchlist))
+    except requests.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Market-data error: {e.response.status_code}")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca market data")
+
+    if engine == "rules":
+        return {"engine": "rules", "recommendations": _rules_recommendations(summary, risk_limits)}
+
+    # Claude engine — degrade gracefully to rules if the key is missing or the call fails.
+    try:
+        account = {}
+        try:
+            acct = _alpaca_get("/v2/account")
+            account = {"buying_power": acct.get("buying_power"), "portfolio_value": acct.get("portfolio_value")}
+        except requests.RequestException:
+            pass
+        return {"engine": "claude", "recommendations": _claude_recommendations(summary, risk_limits, account)}
+    except Exception as e:
+        return {
+            "engine": "rules",
+            "fallback": True,
+            "reason": str(e)[:200],
+            "recommendations": _rules_recommendations(summary, risk_limits),
+        }

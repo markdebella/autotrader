@@ -21,6 +21,9 @@ const DefaultSettings = {
         maxAutonomousDollars: 100,
       },
       riskLimits: { ...CONFIG.defaultRiskLimits },
+      recommendations: {
+        engine: 'claude',   // 'claude' (AI, default) | 'rules' (deterministic). Toggle in Settings.
+      },
       watchlist: [...CONFIG.defaultWatchlist],
       notifications: {
         enabled: false,

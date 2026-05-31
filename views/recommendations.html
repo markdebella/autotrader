@@ -18,6 +18,18 @@
     </div>
   </div>
 
+  <!-- Generate controls -->
+  <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap">
+    <button class="btn btn-primary btn-sm" @click="generate()" :disabled="generating">
+      <span x-show="!generating">Generate ideas</span>
+      <span x-show="generating">Generating…</span>
+    </button>
+    <span style="font-size:0.8rem;color:var(--text-muted)">
+      Engine: <span x-text="engineLabel"></span> ·
+      <a href="#" @click.prevent="Router.go('settings')">change</a>
+    </span>
+  </div>
+
   <!-- Empty state -->
   <template x-if="recs.length === 0">
     <div class="empty-state">
