@@ -10,11 +10,15 @@ all of this from a **browser** using **Cloud Shell** — nothing is installed on
 
 ## 0. Open Cloud Shell
 Go to <https://console.cloud.google.com>, pick your project, and click the **terminal icon**
-(`>_`, top right) to open Cloud Shell. Then set your variables (edit the values):
+(`>_`, top right) to open Cloud Shell. Then set your variables (edit the values).
+
+> Use your project **ID**, not its display name — IDs are globally unique and often carry a
+> numeric suffix (display name "AutoTrader" → ID "autotrader-497920"). Find it with
+> `gcloud projects list` (the PROJECT_ID column) or the console project picker.
 
 ```bash
-export PROJECT_ID="your-gcp-project-id"
-export REGION="us-central1"
+export PROJECT_ID="autotrader-497920"     # ← real project ID, not just "autotrader"
+export REGION="us-west1"
 export OWNER_EMAIL="markdebella@gmail.com"          # the Google account you sign into the app with
 export OAUTH_CLIENT_ID="686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com"
 export ORIGINS="https://markdebella.github.io,http://localhost:8000,http://127.0.0.1:8000"
