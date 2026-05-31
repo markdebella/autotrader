@@ -35,7 +35,7 @@ ALPACA_PAPER    = os.environ.get("ALPACA_PAPER", "true").lower() == "true"
 
 ALPACA_BASE = "https://paper-api.alpaca.markets" if ALPACA_PAPER else "https://api.alpaca.markets"
 ALPACA_DATA_BASE = "https://data.alpaca.markets"
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")  # used when engine='claude'
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")  # used when engine='gemini'
 
 app = FastAPI()
 app.add_middleware(
@@ -129,9 +129,9 @@ def portfolio(request: Request):
 
 
 # ── Recommendation generation (Phase 2) ─────────────────────────────────────────
-# The backend generates trade ideas: it has the market data and (for the Claude engine)
-# the Claude API key in Secret Manager. The browser triggers this and saves the result to
-# the user's Drive — neither the Alpaca nor the Claude key ever touches the browser.
+# The backend generates trade ideas: it has the market data and (for the Gemini engine)
+# the Gemini API key in Secret Manager. The browser triggers this and saves the result to
+# the user's Drive — neither the Alpaca nor the Gemini key ever touches the browser.
 
 def _recent_bars(symbols):
     """Daily bars for the last ~30 calendar days per symbol (free IEX feed)."""
@@ -149,7 +149,7 @@ def _recent_bars(symbols):
 
 
 def _summarize(bars_by_symbol):
-    """Compact per-symbol stats for the rules engine and the Claude prompt."""
+    """Compact per-symbol stats for the rules engine and the Gemini prompt."""
     out = {}
     for sym, bars in bars_by_symbol.items():
         closes = [b.get("c") for b in (bars or []) if b.get("c") is not None][-10:]
@@ -221,36 +221,41 @@ def _extract_json_array(text):
     return json.loads(text)
 
 
-def _claude_recommendations(summary, risk_limits, account):
-    """Ask Claude for up to 5 small starter ideas as strict JSON. Key from Secret Manager."""
-    api_key = _secret("claude-api-key")
+def _gemini_recommendations(summary, risk_limits, account):
+    """Ask Google Gemini for up to 5 small starter ideas as strict JSON. Key from Secret Manager.
+
+    Uses the AI Studio Gemini API (generativelanguage.googleapis.com) with an API key
+    created under the owner's Google account — free tier, no third-party provider.
+    """
+    api_key = _secret("gemini-api-key")
     max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
     system = (
         "You are a cautious trading assistant for a SMALL PAPER (simulated) account. Propose at most 5 "
         "small starter trade ideas. Education-first; this is NOT financial advice. Prefer buys of watchlist "
         "names on pullbacks; only suggest a sell for a symbol the account already holds. Each idea's dollars "
-        f"must be <= {max_order:.0f} (the max-order limit). Return ONLY a JSON array (no prose, no code fence), "
+        f"must be <= {max_order:.0f} (the max-order limit). Return ONLY a JSON array, "
         'each item: {"symbol": str, "side": "buy"|"sell", "dollars": number, "reasoning": str (1-2 plain sentences)}.'
     )
     user = json.dumps({"riskLimits": risk_limits, "account": account, "marketData": summary})
     resp = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+        params={"key": api_key},
         json={
-            "model": CLAUDE_MODEL,
-            "max_tokens": 1024,
-            "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
-            "messages": [{"role": "user", "content": user}],
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {
+                "maxOutputTokens": 1024,
+                "temperature": 0.6,
+                "responseMimeType": "application/json",
+            },
         },
         timeout=40,
     )
     resp.raise_for_status()
     payload = resp.json()
-    text = "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
+    candidate = (payload.get("candidates") or [{}])[0]
+    parts = (candidate.get("content") or {}).get("parts") or []
+    text = "".join(p.get("text", "") for p in parts)
     ideas = _extract_json_array(text)
     recs = []
     for idea in ideas[:5]:
@@ -259,7 +264,7 @@ def _claude_recommendations(summary, risk_limits, account):
             continue
         dollars = float(idea.get("dollars") or max_order)
         recs.append(_make_rec(sym, idea.get("side", "buy"), dollars,
-                              str(idea.get("reasoning", "")).strip(), risk_limits, "claude"))
+                              str(idea.get("reasoning", "")).strip(), risk_limits, "gemini"))
     return recs
 
 
@@ -270,7 +275,8 @@ async def generate_recommendations(request: Request):
         body = await request.json()
     except Exception:
         body = {}
-    engine      = "rules" if str(body.get("engine", "claude")).lower() == "rules" else "claude"
+    # Any non-'rules' value means the AI engine (handles legacy 'claude' too).
+    engine      = "rules" if str(body.get("engine", "gemini")).lower() == "rules" else "gemini"
     watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
     risk_limits = body.get("riskLimits") or {}
 
@@ -284,7 +290,7 @@ async def generate_recommendations(request: Request):
     if engine == "rules":
         return {"engine": "rules", "recommendations": _rules_recommendations(summary, risk_limits)}
 
-    # Claude engine — degrade gracefully to rules if the key is missing or the call fails.
+    # Gemini engine — degrade gracefully to rules if the key is missing or the call fails.
     try:
         account = {}
         try:
@@ -292,7 +298,7 @@ async def generate_recommendations(request: Request):
             account = {"buying_power": acct.get("buying_power"), "portfolio_value": acct.get("portfolio_value")}
         except requests.RequestException:
             pass
-        return {"engine": "claude", "recommendations": _claude_recommendations(summary, risk_limits, account)}
+        return {"engine": "gemini", "recommendations": _gemini_recommendations(summary, risk_limits, account)}
     except Exception as e:
         return {
             "engine": "rules",

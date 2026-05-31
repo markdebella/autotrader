@@ -26,7 +26,7 @@ const Api = (() => {
       return resp.json();
     },
 
-    /** Ask the backend to generate trade ideas. engine: 'claude' | 'rules'. */
+    /** Ask the backend to generate trade ideas. engine: 'gemini' | 'rules'. */
     async generateRecommendations({ engine, watchlist, riskLimits }) {
       const token = Auth.getToken();
       if (!token) throw new Error('Not signed in');

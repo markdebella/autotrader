@@ -36,8 +36,8 @@ Live site: <https://markdebella.github.io/autotrader/>
 See [`ROADMAP.md`](ROADMAP.md). Three phases, building trust in stages:
 
 1. **Educate** *(done)* — understand every number on the dashboard.
-2. **Recommend + approve** *(in progress)* — Claude proposes trades; you approve/deny;
-   execution stays in Claude Code via MCP. Still paper trading.
+2. **Recommend + approve** *(in progress)* — Gemini (or a rules engine) proposes trades;
+   you approve/deny; execution stays in Claude Code via MCP. Still paper trading.
 3. **Guarded autonomy** *(later)* — a deterministic execution service places trades only
    within hard-coded risk limits, with a kill switch. Paper until proven.
 

@@ -14,15 +14,15 @@ const DefaultSettings = {
         provider: 'alpaca',
         paperMode: true,
       },
-      claude: {
-        apiKey: '',
-        enabled: false,
+      ai: {
+        // Reserved for Phase 3 (guarded autonomy). No API keys here — the Gemini key
+        // lives only in Google Secret Manager (see SECURITY.md).
         autonomousMode: false,
         maxAutonomousDollars: 100,
       },
       riskLimits: { ...CONFIG.defaultRiskLimits },
       recommendations: {
-        engine: 'claude',   // 'claude' (AI, default) | 'rules' (deterministic). Toggle in Settings.
+        engine: 'gemini',   // 'gemini' (AI, default) | 'rules' (deterministic). Toggle in Settings.
       },
       watchlist: [...CONFIG.defaultWatchlist],
       notifications: {

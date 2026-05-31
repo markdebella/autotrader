@@ -32,7 +32,7 @@ Alpaca API   (read-only now; execute within hard limits in Phase 3)
 | Secret | Home | Who can read it |
 |---|---|---|
 | Alpaca paper key/secret | Google Secret Manager | The backend service's service account only |
-| Claude (Anthropic) API key | Google Secret Manager (`claude-api-key`) | Same service account only — used by the recommendation engine (optional; rules engine needs no key) |
+| Gemini (Google) API key | Google Secret Manager (`gemini-api-key`) | Same service account only — used by the recommendation engine (optional; rules engine needs no key) |
 | Alpaca **live** key/secret (Phase 3) | Google Secret Manager (separate secrets) | Same service account only; promoted by an explicit, deliberate step |
 | Drive access for the service | A stored OAuth refresh token **in Secret Manager** | Same service account only |
 
