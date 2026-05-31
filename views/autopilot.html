@@ -71,7 +71,12 @@
         <li>Create a <strong>scheduler service account</strong> and <strong>redeploy</strong> the backend with its email as <code>CRON_SA_EMAIL</code>.</li>
         <li>Create the <strong>Cloud Scheduler job</strong> that calls <code>/api/autopilot/scheduled-run</code>.</li>
       </ol>
-      <span style="display:block;margin-top:6px">Copy-paste commands: <code>docs/gcp-setup.md</code> → <em>"Scheduled autopilot (Stage B)"</em>. This message clears automatically once the backend's config store is live.</span>
+      <span style="display:block;margin-top:8px;color:var(--text-primary);font-weight:600">Run this once in Cloud Shell:</span>
+      <div style="display:flex;align-items:flex-start;gap:var(--space-sm);margin-top:4px">
+        <pre style="flex:1;min-width:0;overflow-x:auto;white-space:pre;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-sm);font-family:monospace;font-size:0.74rem;line-height:1.5;color:var(--text-primary);margin:0" x-text="setupCmd"></pre>
+        <button class="btn btn-secondary btn-sm" @click="copyText(setupCmd)">Copy</button>
+      </div>
+      <span style="display:block;margin-top:6px;font-size:0.8rem">The redeploy (step 4) is what flips this on — once it finishes, reload and the toggle goes live. Then in Cloud Shell you can test immediately with <code>gcloud scheduler jobs run autotrader-autopilot --location=us-west1</code>. Full notes: <code>docs/gcp-setup.md</code>.</span>
     </div>
   </div>
 

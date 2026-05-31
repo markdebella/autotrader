@@ -500,6 +500,39 @@ function AutopilotView() {
 
     fmtTime(t) { try { return Utils.formatDateTime(t); } catch { return t || ''; } },
 
+    async copyText(text) {
+      try { await navigator.clipboard.writeText(text); Toast.success('Setup commands copied.'); }
+      catch { Toast.error('Could not copy — select the text and copy it manually.'); }
+    },
+
+    /** The exact one-time Cloud Shell commands to enable scheduled trading (Stage B). */
+    get setupCmd() {
+      return [
+        'cd ~/autotrader && git pull',
+        'export PROJECT_ID="autotrader-497920" REGION="us-west1" OWNER_EMAIL="markdebella@gmail.com"',
+        'export OAUTH_CLIENT_ID="686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com"',
+        'export ORIGINS="https://markdebella.github.io,http://localhost:8000,http://127.0.0.1:8000"',
+        'export SA="autotrader-api@${PROJECT_ID}.iam.gserviceaccount.com"',
+        'gcloud config set project "$PROJECT_ID"',
+        '',
+        'gcloud services enable firestore.googleapis.com cloudscheduler.googleapis.com',
+        'gcloud firestore databases create --location="$REGION" --type=firestore-native',
+        'gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:${SA}" --role="roles/datastore.user"',
+        'gcloud iam service-accounts create autotrader-cron --display-name="AutoTrader scheduler"',
+        'export CRON_SA="autotrader-cron@${PROJECT_ID}.iam.gserviceaccount.com"',
+        '',
+        'gcloud run deploy autotrader-api --source ./service --region "$REGION" \\',
+        '  --service-account "$SA" --allow-unauthenticated --min-instances=0 --max-instances=2 \\',
+        '  --set-env-vars "^;^GCP_PROJECT=${PROJECT_ID};OWNER_EMAIL=${OWNER_EMAIL};OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID};ALLOWED_ORIGINS=${ORIGINS};ALPACA_PAPER=true;CRON_SA_EMAIL=${CRON_SA}"',
+        '',
+        'export URL="$(gcloud run services describe autotrader-api --region "$REGION" --format=\'value(status.url)\')"',
+        'gcloud scheduler jobs create http autotrader-autopilot --location="$REGION" \\',
+        '  --schedule="35 9 * * 1-5" --time-zone="America/New_York" \\',
+        '  --uri="${URL}/api/autopilot/scheduled-run" --http-method=POST \\',
+        '  --oidc-service-account-email="$CRON_SA" --oidc-token-audience="${URL}"',
+      ].join('\n');
+    },
+
     async setEngine(e) { this.engine = e === 'rules' ? 'rules' : 'ai'; await this._saveConfig(); },
 
     async toggleKillSwitch() {
