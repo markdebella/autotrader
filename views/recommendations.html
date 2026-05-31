@@ -19,16 +19,17 @@
   </div>
 
   <!-- Generate controls -->
-  <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);flex-wrap:wrap">
     <button class="btn btn-primary btn-sm" @click="generate()" :disabled="generating">
-      <span x-show="!generating">Generate ideas</span>
+      <span x-show="!generating">Generate ideas (rules)</span>
       <span x-show="generating">Generating…</span>
     </button>
-    <span style="font-size:0.8rem;color:var(--text-muted)">
-      Engine: <span x-text="engineLabel"></span> ·
-      <a href="#" @click.prevent="Router.go('settings')">change</a>
-    </span>
+    <button class="btn btn-secondary btn-sm" @click="copyClaudeCodePrompt()">Copy Claude Code prompt</button>
   </div>
+  <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:var(--space-md)">
+    <strong style="color:var(--text-secondary)">Rules</strong> — instant, free, deterministic.
+    <strong style="color:var(--text-secondary)">Claude Code prompt</strong> — AI ideas via your Claude subscription: paste it into Claude Code, which writes them to your Drive; then come back and Refresh.
+  </p>
 
   <!-- Empty state -->
   <template x-if="recs.length === 0">

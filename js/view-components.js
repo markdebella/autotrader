@@ -99,7 +99,6 @@ function Analytics() {
 function Settings() {
   return {
     riskLimits: { ...CONFIG.defaultRiskLimits },
-    engine: 'claude',   // recommendation engine: 'claude' (AI) | 'rules'
 
     get driveFolderId() { return Drive.getFolderId(); },
 
@@ -108,17 +107,7 @@ function Settings() {
       if (settings) {
         // Merge over defaults so existing users get any newly-added limit fields.
         this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
-        this.engine = settings.recommendations?.engine || 'claude';
       }
-    },
-
-    async setEngine(engine) {
-      this.engine = engine;
-      const settings = Alpine.store('data').settings;
-      settings.recommendations = { ...(settings.recommendations || {}), engine };
-      Alpine.store('data').settings = { ...settings };
-      await Drive.saveSettings(settings);
-      Toast.success(`Ideas engine set to ${engine === 'rules' ? 'Rules-based' : 'Claude (AI)'}.`);
     },
 
     async saveRiskLimits() {
@@ -192,11 +181,6 @@ function RecommendationsView() {
 
     generating: false,
 
-    get engineLabel() {
-      const e = (Alpine.store('data').settings?.recommendations?.engine) || 'claude';
-      return e === 'rules' ? 'Rules' : 'Claude (AI)';
-    },
-
     sizeLabel(rec)  { return Recs.sizeLabel(rec); },
     mcpCommand(rec) { return Recs.mcpCommand(rec); },
 
@@ -206,7 +190,7 @@ function RecommendationsView() {
       this.generating = true;
       try {
         const settings = Alpine.store('data').settings || {};
-        const engine = settings.recommendations?.engine || 'claude';
+        const engine = 'rules';  // in-app Generate = the free rules engine; AI ideas come via the Claude Code prompt
         const res = await Api.generateRecommendations({
           engine,
           watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
@@ -232,6 +216,22 @@ function RecommendationsView() {
         Toast.error('Could not generate ideas. ' + (err.message || ''));
       } finally {
         this.generating = false;
+      }
+    },
+
+    /** Copy a ready-to-run prompt so Claude Code (your subscription) writes AI ideas to Drive. */
+    async copyClaudeCodePrompt() {
+      const settings = Alpine.store('data').settings || {};
+      const prompt = Recs.claudeCodePrompt(
+        settings.watchlist  || CONFIG.defaultWatchlist,
+        settings.riskLimits || CONFIG.defaultRiskLimits,
+      );
+      try {
+        await navigator.clipboard.writeText(prompt);
+        Toast.success('Claude Code prompt copied — paste it into Claude Code, then Refresh here.');
+      } catch {
+        console.log(prompt);
+        Toast.error('Could not copy automatically — the prompt is in the browser console.');
       }
     },
 

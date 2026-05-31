@@ -46,7 +46,7 @@
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Trade Ideas (Approve / Deny)</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
           <p>The <strong style="color:var(--text-primary)">Ideas</strong> tab lists trade suggestions for <strong style="color:var(--text-primary)">you</strong> to approve or deny — nothing trades automatically. Each idea shows <em>what</em> (symbol, side, size), <em>why</em> (reasoning), and how it fits within your <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.</p>
-          <p>Press <strong style="color:var(--text-primary)">Generate ideas</strong> for a fresh batch. By default they come from <strong style="color:var(--text-primary)">Claude (AI)</strong> analyzing your watchlist and recent market data; switch to a free <strong style="color:var(--text-primary)">rules-based</strong> engine anytime in <a href="#" @click.prevent="Router.go('settings')">Settings → Recommendation Engine</a>. The Claude API key lives in Secret Manager — never in your browser.</p>
+          <p>Two ways to get ideas, both free: <strong style="color:var(--text-primary)">Generate ideas (rules)</strong> runs an instant, deterministic price-rules engine; or <strong style="color:var(--text-primary)">Copy Claude Code prompt</strong> gives you a prompt to paste into <strong style="color:var(--text-primary)">Claude Code</strong> (your Claude subscription) — it writes richer AI ideas to your Drive, then you Refresh. No API key either way.</p>
           <p><strong style="color:var(--text-primary)">Approving</strong> records your decision and copies a ready-to-run command you paste into <strong style="color:var(--text-primary)">Claude Code</strong>, which places the order in <strong style="color:var(--text-primary)">paper mode</strong>. An idea that would breach a risk limit can't be approved.</p>
         </div>
       </div>
@@ -104,7 +104,7 @@
       <div class="card" style="margin-bottom:var(--space-md)">
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">How a Trade Happens in AutoTrader</div>
         <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
-          <li>Press <strong>Generate ideas</strong> in <strong>Ideas</strong> (Claude by default, or rules-based) — or decide on your own.</li>
+          <li>In <strong>Ideas</strong>, press <strong>Generate ideas (rules)</strong> or paste the <strong>Claude Code prompt</strong> for AI ideas — or decide on your own.</li>
           <li>You <strong>Approve</strong> it — only allowed if it passes your risk limits.</li>
           <li>The order is placed in <strong>paper mode</strong> (today: by running the copied command in Claude Code; later: automatically by the guarded execution service).</li>
           <li>Come back to the <strong>Dashboard</strong> and press <strong>Refresh</strong> to see the order and, once it fills, your new position.</li>

@@ -77,5 +77,31 @@ const Recs = (() => {
     };
   }
 
-  return { SCHEMA_VERSION, mcpCommand, sizeLabel, sampleDoc };
+  /**
+   * A ready-to-paste prompt for Claude Code (uses the user's Claude subscription — no API
+   * key) to generate AI trade ideas and write them straight to the user's Drive. The app
+   * then reads recommendations.json and shows them in the Ideas feed.
+   */
+  function claudeCodePrompt(watchlist, riskLimits) {
+    const rl = riskLimits || {};
+    const list = (watchlist || []).join(', ');
+    return [
+      'Help me generate PAPER-trading ideas for my AutoTrader app and save them to my Google Drive.',
+      '',
+      `Watchlist: ${list}`,
+      `Risk limits: max $${rl.maxOrderDollars ?? 10} per order, max $${rl.maxPositionDollars ?? 25} per position, max ${rl.maxTradesPerDay ?? 3} trades/day.`,
+      '',
+      '1. Analyze the watchlist (use the Alpaca MCP for quotes/history if available, otherwise your best judgment). Propose UP TO 5 small starter ideas. Education-first, not financial advice. Prefer buys on pullbacks; only suggest a sell for a symbol I already hold.',
+      '',
+      '2. Format each idea as exactly this JSON object (dollars must be <= the max-order limit):',
+      '   { "id": "<uuid>", "symbol": "AAPL", "side": "buy"|"sell", "orderType": "market", "dollars": <number>, "qty": null, "limitPrice": null, "reasoning": "<1-2 plain sentences>", "guardrail": { "passed": true, "notes": "<how it fits my limits>" }, "createdAt": "<ISO timestamp now>", "decidedAt": null, "status": "pending", "source": "claude-code" }',
+      '',
+      '3. In my Google Drive, open AutoTrader/recommendations.json (create it if missing). KEEP any items whose status is "approved" or "denied"; drop the rest; put your new ideas first. Write the whole file as:',
+      `   { "version": ${SCHEMA_VERSION}, "updatedAt": "<ISO timestamp now>", "recommendations": [ ...new ideas..., ...kept approved/denied... ] }`,
+      '',
+      'Then tell me how many ideas you wrote. I\'ll click Refresh in the app to see them.',
+    ].join('\n');
+  }
+
+  return { SCHEMA_VERSION, mcpCommand, sizeLabel, sampleDoc, claudeCodePrompt };
 })();

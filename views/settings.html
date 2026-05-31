@@ -33,21 +33,13 @@
     </div>
   </div>
 
-  <!-- Recommendation engine -->
+  <!-- How ideas are generated -->
   <div class="card" style="margin-bottom:var(--space-md)">
-    <div class="card__title">Recommendation Engine</div>
-    <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:var(--space-sm)">
-      How the <a href="#" @click.prevent="Router.go('recommendations')">Ideas</a> tab generates trade suggestions.
-    </p>
-    <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);flex-wrap:wrap">
-      <button class="btn btn-sm" :class="engine==='claude' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('claude')">Claude (AI)</button>
-      <button class="btn btn-sm" :class="engine==='rules' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('rules')">Rules-based</button>
-    </div>
-    <div class="form-hint" style="margin-top:var(--space-sm)" x-show="engine==='claude'">
-      Default. Claude analyzes your watchlist &amp; recent market data and writes explained ideas. The Claude API key lives in Google Secret Manager — never in the browser.
-    </div>
-    <div class="form-hint" style="margin-top:var(--space-sm)" x-show="engine==='rules'">
-      Deterministic rules on recent prices — no AI and no extra cost.
+    <div class="card__title">Trade Ideas</div>
+    <div style="color:var(--text-secondary);font-size:0.9rem;line-height:1.5;margin-top:var(--space-sm);display:flex;flex-direction:column;gap:var(--space-sm)">
+      <p>On the <a href="#" @click.prevent="Router.go('recommendations')">Ideas</a> tab you can generate trade suggestions two ways — both free:</p>
+      <p><strong style="color:var(--text-primary)">Generate ideas (rules)</strong> — instant, deterministic rules on recent prices. No AI, no key.</p>
+      <p><strong style="color:var(--text-primary)">Claude Code prompt</strong> — AI-written ideas using your <strong style="color:var(--text-primary)">Claude subscription</strong>: copy the prompt, paste it into Claude Code, and it writes the ideas to your Drive. No API key needed.</p>
     </div>
   </div>
 

@@ -22,7 +22,8 @@ const DefaultSettings = {
       },
       riskLimits: { ...CONFIG.defaultRiskLimits },
       recommendations: {
-        engine: 'claude',   // 'claude' (AI, default) | 'rules' (deterministic). Toggle in Settings.
+        // In-app "Generate" uses the free rules engine; AI ideas come from Claude Code → Drive.
+        engine: 'rules',
       },
       watchlist: [...CONFIG.defaultWatchlist],
       notifications: {

@@ -40,9 +40,10 @@ Typed at a hidden prompt so the key never lands in your shell history:
 read -rs -p "Alpaca paper API key:    " K; printf "%s" "$K" | gcloud secrets create alpaca-paper-key    --data-file=-; unset K; echo
 read -rs -p "Alpaca paper secret key: " S; printf "%s" "$S" | gcloud secrets create alpaca-paper-secret --data-file=-; unset S; echo
 
-# Optional — only for the Claude (AI) recommendation engine (the Ideas-tab default). Get a
-# key at https://console.anthropic.com → API Keys. Skip it to use the free rules engine.
-read -rs -p "Claude (Anthropic) API key: " C; printf "%s" "$C" | gcloud secrets create claude-api-key --data-file=-; unset C; echo
+# OPTIONAL and usually unnecessary — only if you want the in-app AI engine to call the paid
+# Anthropic API directly. The free paths need NO key: the in-app "Generate ideas (rules)"
+# button, or "Copy Claude Code prompt" which uses your Claude subscription. Most setups skip this.
+read -rs -p "Anthropic API key (optional): " C; printf "%s" "$C" | gcloud secrets create claude-api-key --data-file=-; unset C; echo
 ```
 
 ## 3. Create a least-privilege service account for the service
