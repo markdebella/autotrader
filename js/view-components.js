@@ -97,12 +97,6 @@ function Analytics() {
 
 function Settings() {
   return {
-    apiKeyId: '',
-    apiSecretKey: '',
-    paperMode: true,
-    showSecret: false,
-    testing: false,
-    connectionStatus: null,
     riskLimits: { ...CONFIG.defaultRiskLimits },
 
     get driveFolderId() { return Drive.getFolderId(); },
@@ -110,71 +104,8 @@ function Settings() {
     init() {
       const settings = Alpine.store('data').settings;
       if (settings) {
-        this.apiKeyId = settings.brokerage.apiKeyId || '';
-        this.apiSecretKey = settings.brokerage.apiSecretKey || '';
-        this.paperMode = settings.brokerage.paperMode;
         // Merge over defaults so existing users get any newly-added limit fields.
         this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
-      }
-    },
-
-    confirmLiveMode() {
-      if (this.paperMode) {
-        if (confirm('WARNING: Switching to LIVE mode means trades will use REAL MONEY.\n\nAre you absolutely sure you want to trade with real funds?')) {
-          if (confirm('Second confirmation: Live trading carries real financial risk. You could lose money.\n\nConfirm switch to LIVE mode?')) {
-            this.paperMode = false;
-          }
-        }
-      }
-    },
-
-    async testConnection() {
-      this.testing = true;
-      this.connectionStatus = null;
-
-      // Temporarily init Alpaca with current form values
-      const tempSettings = {
-        brokerage: {
-          apiKeyId: this.apiKeyId,
-          apiSecretKey: this.apiSecretKey,
-          paperMode: this.paperMode,
-        },
-      };
-      Alpaca.init(tempSettings);
-
-      try {
-        const account = await Alpaca.testConnection();
-        this.connectionStatus = {
-          ok: true,
-          message: `Connected! Account: ${account.account_number} | Buying power: ${Utils.formatCurrency(parseFloat(account.buying_power))} | Status: ${account.status}`,
-        };
-      } catch (err) {
-        this.connectionStatus = {
-          ok: false,
-          message: `Connection failed: ${err.message}`,
-        };
-      } finally {
-        this.testing = false;
-      }
-    },
-
-    async saveCredentials() {
-      const settings = Alpine.store('data').settings;
-      settings.brokerage.apiKeyId = this.apiKeyId;
-      settings.brokerage.apiSecretKey = this.apiSecretKey;
-      settings.brokerage.paperMode = this.paperMode;
-
-      Alpine.store('data').settings = { ...settings };
-      Alpine.store('ui').paperMode = this.paperMode;
-      await Drive.saveSettings(settings);
-      Alpaca.init(settings);
-      Alpine.store('data').alpacaConfigured = Alpaca.isConfigured();
-
-      Toast.success('Credentials saved.');
-
-      // Refresh portfolio if connected
-      if (Alpaca.isConfigured()) {
-        await App.refreshPortfolio();
       }
     },
 

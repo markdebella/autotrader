@@ -138,6 +138,14 @@ const App = {
       // Load settings (or create defaults on first run)
       const settings = await Drive.loadSettings();
       if (settings) {
+        // Security: legacy installs stored Alpaca keys here. Keys now live only in
+        // Secret Manager — strip any that linger and re-save so Drive holds no secrets.
+        const b = settings.brokerage;
+        if (b && (b.apiKeyId || b.apiSecretKey)) {
+          delete b.apiKeyId;
+          delete b.apiSecretKey;
+          await Drive.saveSettings(settings);
+        }
         data.settings = settings;
       } else {
         const defaults = DefaultSettings.get();

@@ -10,9 +10,8 @@ const DefaultSettings = {
     return {
       version: 1,
       brokerage: {
+        // No API keys here — keys live only in Google Secret Manager (see SECURITY.md).
         provider: 'alpaca',
-        apiKeyId: '',
-        apiSecretKey: '',
         paperMode: true,
       },
       claude: {
