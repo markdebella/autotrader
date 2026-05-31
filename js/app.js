@@ -261,6 +261,35 @@ const App = {
     if (changed) Toast.info('Updated trade fills from Alpaca.');
   },
 
+  /**
+   * Log a placed Alpaca order to the Drive trade journal + manifest (so it shows in Recent
+   * Trades and reconciles to filled later). Shared by manual approve-execute and autopilot.
+   * `meta` carries the originating intent: { symbol, side, dollars, qty, orderType,
+   * limitPrice, reasoning, source, recommendationId }. Returns the saved trade.
+   */
+  async logPlacedOrder(order, meta) {
+    const trade = {
+      id:               order?.id || Utils.uuid(),
+      symbol:           meta.symbol,
+      side:             meta.side,
+      qty:              order?.qty != null ? Number(order.qty) : (meta.qty ?? null),
+      notional:         order?.notional != null ? Number(order.notional) : (meta.dollars ?? null),
+      orderType:        meta.orderType || 'market',
+      limitPrice:       meta.limitPrice ?? null,
+      filledAvgPrice:   order?.filled_avg_price != null ? Number(order.filled_avg_price) : null,
+      status:           order?.status || 'accepted',
+      submittedAt:      order?.submitted_at || order?.created_at || Utils.nowISO(),
+      filledAt:         order?.filled_at || null,
+      reasoning:        meta.reasoning || '',
+      source:           meta.source || 'manual',
+      recommendationId: meta.recommendationId || null,
+      paper:            true,
+    };
+    await Drive.saveTrade(trade);
+    await Manifest.upsert(trade);   // refresh the lightweight entry + persist the manifest
+    return trade;
+  },
+
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

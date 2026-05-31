@@ -384,3 +384,206 @@ async def place_order(request: Request):
         raise HTTPException(status_code=502, detail=f"Alpaca rejected the order: {msg or e.response.status_code}")
     except requests.RequestException:
         raise HTTPException(status_code=502, detail="Could not reach Alpaca to place the order")
+
+
+# ── Autonomous trading cycle (hybrid Phase 3, paper) ──────────────────────────
+# Runs ONE trading cycle on demand: decide buys/sells (AI or rules), enforce every risk
+# limit server-side, and place the paper orders. Same path a Cloud Scheduler will call
+# later. Defaults to doing nothing on any doubt; a kill switch halts it entirely.
+
+def _rules_autonomous(summary, risk_limits, positions):
+    """Deterministic actions: buy watchlist dips; take profit / cut losses on holdings."""
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    actions = []
+    for sym, s in summary.items():
+        if s["avg10"] and s["last"] < s["avg10"] * 0.98:
+            pct = (s["last"] - s["avg10"]) / s["avg10"] * 100
+            actions.append({"symbol": sym, "side": "buy", "dollars": max_order,
+                            "reasoning": f"{sym} is {abs(pct):.1f}% below its 10-day average — buy the dip."})
+    for p in positions:
+        try:
+            plpc = float(p.get("unrealized_plpc") or 0) * 100
+        except (TypeError, ValueError):
+            continue
+        sym, qty = p.get("symbol"), p.get("qty")
+        if plpc >= 5:
+            actions.append({"symbol": sym, "side": "sell", "qty": qty,
+                            "reasoning": f"{sym} is up {plpc:.1f}% — take profit."})
+        elif plpc <= -5:
+            actions.append({"symbol": sym, "side": "sell", "qty": qty,
+                            "reasoning": f"{sym} is down {abs(plpc):.1f}% — cut the loss."})
+    return actions
+
+
+def _claude_autonomous(summary, risk_limits, account, positions):
+    """Ask Claude to choose this cycle's actions as strict JSON. Key from Secret Manager."""
+    api_key = _secret("claude-api-key")
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    held = [{"symbol": p.get("symbol"), "qty": p.get("qty"),
+             "unrealized_plpc": p.get("unrealized_plpc"), "market_value": p.get("market_value")}
+            for p in positions]
+    system = (
+        "You are a cautious AUTONOMOUS trader for a SMALL PAPER (simulated) account — education/demo, "
+        "NOT financial advice. Decide this cycle's actions. You may BUY watchlist names (especially on "
+        "pullbacks) and may SELL holdings to take profit or cut losses. Only SELL symbols currently held. "
+        f"Each BUY's dollars must be <= {max_order:.0f}. Doing nothing (an empty array) is acceptable and "
+        "often correct. Return ONLY a JSON array (no prose, no code fence); each item is "
+        '{"symbol": str, "side": "buy"|"sell", "dollars": number (buys), "qty": number (sells), '
+        '"reasoning": str (1 short sentence)}.'
+    )
+    user = json.dumps({"riskLimits": risk_limits, "account": account, "positions": held, "marketData": summary})
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+        json={
+            "model": CLAUDE_MODEL,
+            "max_tokens": 1024,
+            "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+            "messages": [{"role": "user", "content": user}],
+        },
+        timeout=40,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    text = "".join(b.get("text", "") for b in payload.get("content", []) if b.get("type") == "text")
+    out = []
+    for idea in _extract_json_array(text):
+        sym = str(idea.get("symbol", "")).upper().strip()
+        if not sym:
+            continue
+        side = "sell" if str(idea.get("side", "buy")).lower() == "sell" else "buy"
+        action = {"symbol": sym, "side": side, "reasoning": str(idea.get("reasoning", "")).strip()}
+        if side == "buy":
+            action["dollars"] = float(idea.get("dollars") or max_order)
+        else:
+            action["qty"] = idea.get("qty")
+        out.append(action)
+    return out
+
+
+@app.post("/api/autonomous/run")
+async def autonomous_run(request: Request):
+    _require_owner(request)
+    if not ALPACA_PAPER:
+        raise HTTPException(status_code=403, detail="Live trading is not enabled")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    engine      = "rules" if str(body.get("engine", "ai")).lower() == "rules" else "ai"
+    risk_limits = body.get("riskLimits") or {}
+    watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
+
+    if body.get("killSwitch"):
+        return {"halted": True, "reason": "Kill switch is on — no trades placed.", "engine": engine, "actions": []}
+
+    # Snapshot the account state.
+    try:
+        clock     = _alpaca_get("/v2/clock")
+        account   = _alpaca_get("/v2/account")
+        positions = _alpaca_get("/v2/positions")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca")
+
+    # Daily-loss guard: halt if today's equity is down by the limit or more.
+    try:
+        equity, last_eq = float(account.get("equity") or 0), float(account.get("last_equity") or 0)
+        daily_loss_limit = float(risk_limits.get("dailyLossLimit", 0) or 0)
+        if daily_loss_limit and last_eq and (equity - last_eq) <= -daily_loss_limit:
+            return {"halted": True, "engine": engine, "actions": [],
+                    "reason": f"Daily loss limit reached (down ${last_eq - equity:.2f} ≥ ${daily_loss_limit:.0f})."}
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        summary = _summarize(_recent_bars(watchlist))
+    except requests.RequestException:
+        summary = {}
+
+    # Decide. AI is primary; degrade to rules if Claude is missing or errors.
+    fallback = False
+    if engine == "ai":
+        try:
+            acct_min = {"buying_power": account.get("buying_power"), "portfolio_value": account.get("portfolio_value")}
+            proposed, used = _claude_autonomous(summary, risk_limits, acct_min, positions), "ai"
+        except Exception:
+            proposed, used, fallback = _rules_autonomous(summary, risk_limits, positions), "rules", True
+    else:
+        proposed, used = _rules_autonomous(summary, risk_limits, positions), "rules"
+
+    # Enforce guardrails, then place what survives.
+    max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
+    max_pos   = float(risk_limits.get("maxPositionDollars", 25) or 25)
+    max_trades = int(risk_limits.get("maxTradesPerDay", 3) or 3)
+    pos_by_sym = {p.get("symbol"): p for p in positions}
+
+    today = str(clock.get("timestamp") or "")[:10]
+    try:
+        recent = _alpaca_get("/v2/orders", {"status": "all", "limit": 200, "direction": "desc"})
+        trades_today = sum(1 for o in recent if str(o.get("submitted_at") or "")[:10] == today)
+    except requests.RequestException:
+        trades_today = 0
+
+    results = []
+    placed = 0
+    for a in proposed:
+        sym  = str(a.get("symbol", "")).upper().strip()
+        side = "sell" if str(a.get("side")).lower() == "sell" else "buy"
+        why  = str(a.get("reasoning", "")).strip()
+        if not sym:
+            continue
+        if trades_today + placed >= max_trades:
+            results.append({"symbol": sym, "side": side, "status": "skipped",
+                            "reason": f"Daily trade limit reached ({max_trades}/day)."})
+            continue
+
+        order = {"symbol": sym, "side": side, "type": "market", "time_in_force": "day"}
+        if side == "buy":
+            dollars = min(float(a.get("dollars") or max_order), max_order)
+            held_val = 0.0
+            try:
+                held_val = float((pos_by_sym.get(sym) or {}).get("market_value") or 0)
+            except (TypeError, ValueError):
+                pass
+            if held_val + dollars > max_pos + 0.01:
+                results.append({"symbol": sym, "side": side, "dollars": dollars, "status": "skipped",
+                                "reason": f"Would exceed ${max_pos:.0f} max-per-position (holding ${held_val:.2f})."})
+                continue
+            order["notional"] = round(dollars, 2)
+            disp = {"dollars": dollars}
+        else:
+            held = pos_by_sym.get(sym)
+            if not held:
+                results.append({"symbol": sym, "side": side, "status": "skipped", "reason": "Not currently held."})
+                continue
+            try:
+                want = float(a.get("qty") or held.get("qty"))
+                qty  = min(want, float(held.get("qty")))
+            except (TypeError, ValueError):
+                results.append({"symbol": sym, "side": side, "status": "skipped", "reason": "Bad quantity."})
+                continue
+            order["qty"] = str(qty)
+            disp = {"qty": qty}
+
+        try:
+            res = _alpaca_post("/v2/orders", order)
+            placed += 1
+            results.append({"symbol": sym, "side": side, **disp, "status": "placed",
+                            "reason": why, "orderId": res.get("id"), "order": res})
+        except requests.HTTPError as e:
+            try:
+                emsg = (e.response.json() or {}).get("message", "")
+            except Exception:
+                emsg = str(e.response.status_code)
+            results.append({"symbol": sym, "side": side, **disp, "status": "error",
+                            "reason": f"Alpaca rejected: {emsg}"})
+
+    return {
+        "engine": used,
+        "fallback": fallback,
+        "marketOpen": bool(clock.get("is_open")),
+        "evaluated": len(proposed),
+        "placedCount": placed,
+        "actions": results,
+    }

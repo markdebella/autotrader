@@ -277,26 +277,12 @@ function RecommendationsView() {
         // shows in Recent Trades and builds the audit trail (basis for shadow-tracking + Phase 3).
         let logged = true;
         try {
-          const trade = {
-            id:               order.id || Utils.uuid(),
-            symbol:           rec.symbol,
-            side:             rec.side,
-            qty:              order.qty != null ? Number(order.qty) : null,
-            notional:         order.notional != null ? Number(order.notional) : (rec.dollars ?? null),
-            orderType:        rec.orderType,
-            limitPrice:       rec.limitPrice ?? null,
-            filledAvgPrice:   order.filled_avg_price != null ? Number(order.filled_avg_price) : null,
-            status:           order.status || 'accepted',
-            submittedAt:      order.submitted_at || order.created_at || Utils.nowISO(),
-            filledAt:         order.filled_at || null,
-            reasoning:        rec.reasoning,
-            source:           rec.source,
-            recommendationId: rec.id,
-            paper:            true,
-          };
+          const trade = await App.logPlacedOrder(order, {
+            symbol: rec.symbol, side: rec.side, dollars: rec.dollars, qty: rec.qty,
+            orderType: rec.orderType, limitPrice: rec.limitPrice,
+            reasoning: rec.reasoning, source: rec.source, recommendationId: rec.id,
+          });
           rec.tradeId = trade.id;
-          await Drive.saveTrade(trade);
-          await Manifest.upsert(trade);   // updates the in-memory manifest + saves it to Drive
         } catch (logErr) {
           logged = false;
           console.error('Order placed but trade-log write failed:', logErr);
@@ -342,6 +328,91 @@ function RecommendationsView() {
     init() {
       // Resolve friendly names for any recommended tickers not already known.
       Company.ensure((Alpine.store('data').recommendations || []).map(r => r.symbol));
+    },
+  };
+}
+
+// ── Autopilot (hybrid Phase 3: autonomous paper trading) ────────────────────────
+
+function AutopilotView() {
+  return {
+    engine: 'ai',          // 'ai' (default) | 'rules'
+    killSwitch: false,
+    running: false,
+    lastRun: null,         // last cycle's backend summary (ephemeral; trades persist to Drive)
+    lastRunAt: null,
+
+    init() {
+      const ap = (Alpine.store('data').settings || {}).autopilot || {};
+      this.engine = ap.engine === 'rules' ? 'rules' : 'ai';
+      this.killSwitch = !!ap.killSwitch;
+    },
+
+    get actions() { return this.lastRun?.actions || []; },
+
+    /** Persist engine + kill-switch to settings.autopilot in Drive. */
+    async _saveConfig() {
+      const settings = Alpine.store('data').settings || {};
+      settings.autopilot = { engine: this.engine, killSwitch: this.killSwitch };
+      Alpine.store('data').settings = { ...settings };
+      try { await Drive.saveSettings(settings); }
+      catch (e) { console.error('Save autopilot config failed:', e); Toast.error('Could not save autopilot settings.'); }
+    },
+
+    async setEngine(e) { this.engine = e === 'rules' ? 'rules' : 'ai'; await this._saveConfig(); },
+
+    async toggleKillSwitch() {
+      this.killSwitch = !this.killSwitch;
+      await this._saveConfig();
+      Toast.info(this.killSwitch ? 'Kill switch ON — autopilot is halted.' : 'Kill switch off — autopilot can trade.');
+    },
+
+    actionLabel(a) {
+      const size = a.dollars != null ? Utils.formatCurrency(a.dollars)
+                 : (a.qty != null ? `${Utils.formatShares(a.qty)} sh` : '');
+      return `${(a.side || '').toUpperCase()} ${size} ${a.symbol}`.trim();
+    },
+
+    /** Run one paper cycle now. The backend enforces all limits + the kill switch. */
+    async runNow() {
+      if (this.running) return;
+      this.running = true;
+      try {
+        const settings = Alpine.store('data').settings || {};
+        const res = await Api.runAutonomous({
+          engine:     this.engine,
+          watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
+          riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
+          killSwitch: this.killSwitch,
+        });
+        this.lastRun   = res;
+        this.lastRunAt = Utils.nowISO();
+
+        if (res.halted) { Toast.info(res.reason || 'Cycle halted.'); return; }
+
+        // Log every placed order to the Drive trade journal so it shows in Recent Trades.
+        const placed = (res.actions || []).filter(a => a.status === 'placed' && a.order);
+        for (const a of placed) {
+          try {
+            await App.logPlacedOrder(a.order, {
+              symbol: a.symbol, side: a.side, dollars: a.dollars, qty: a.qty,
+              orderType: 'market', reasoning: a.reason, source: 'auto-' + res.engine,
+            });
+          } catch (e) { console.warn('Autopilot trade-log failed:', e); }
+        }
+        Company.ensure(placed.map(a => a.symbol));
+
+        const eng = res.engine === 'ai' ? 'AI' : 'rules';
+        if (res.placedCount > 0) Toast.success(`Autopilot (${eng}) placed ${res.placedCount} paper order${res.placedCount === 1 ? '' : 's'}.`);
+        else Toast.info(`Autopilot (${eng}) ran — no trades this cycle.`);
+        if (res.fallback) Toast.info('Claude was unavailable — used the rules engine this cycle.');
+        App.refreshPortfolio();
+      } catch (err) {
+        console.error('Autopilot run failed:', err);
+        Toast.error('Autopilot run failed. ' + (err.message || ''));
+      } finally {
+        this.running = false;
+      }
     },
   };
 }

@@ -64,5 +64,27 @@ const Api = (() => {
       }
       return resp.json();
     },
+
+    /**
+     * Run one autonomous (paper) trading cycle on the backend. engine: 'ai' | 'rules'.
+     * The backend enforces every risk limit + the kill switch and places the surviving
+     * orders. Returns { engine, fallback, marketOpen, evaluated, placedCount, actions:[...] }.
+     */
+    async runAutonomous({ engine, watchlist, riskLimits, killSwitch }) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const resp = await fetch(base() + '/api/autonomous/run', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ engine, watchlist, riskLimits, killSwitch }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        let detail = body.slice(0, 300);
+        try { detail = JSON.parse(body).detail || detail; } catch { /* keep raw */ }
+        throw new Error(detail || `Backend ${resp.status}`);
+      }
+      return resp.json();
+    },
   };
 })();

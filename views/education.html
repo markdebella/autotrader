@@ -51,6 +51,16 @@
         </div>
       </div>
 
+      <!-- Autopilot -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Autopilot (Paper)</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>The <strong style="color:var(--text-primary)">Autopilot</strong> tab lets the strategy trade <strong style="color:var(--text-primary)">on its own, in paper mode</strong>, so you can watch what it buys and sells and how the simulated account grows — with no real-money risk. It's how you build trust before ever considering live money.</p>
+          <p>Each cycle decides with <strong style="color:var(--text-primary)">AI (Claude)</strong> by default — or switch to the deterministic <strong style="color:var(--text-primary)">rules</strong> engine — and the <strong style="color:var(--text-primary)">backend re-checks every risk limit</strong> (per-order, per-position, daily trade count, daily loss) before placing anything. A <strong style="color:var(--text-primary)">kill switch</strong> halts it instantly.</p>
+          <p>Today you press <strong style="color:var(--text-primary)">Run a cycle now</strong> to watch it act on demand; scheduled, unattended runs come later, once the behavior has earned your trust.</p>
+        </div>
+      </div>
+
       <!-- Roadmap -->
       <div class="card">
         <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">The Plan: Trust in Stages</div>
@@ -62,7 +72,7 @@
             <strong style="color:var(--text-primary)">2. Recommend + approve</strong> — AI ideas you approve or deny; you press the button, the backend places the paper order within your risk limits. <em>(in progress — the Ideas tab)</em>
           </div>
           <div>
-            <strong style="color:var(--text-muted)">3. Guarded autonomy</strong> — the same backend trades on a schedule, but only within hard-coded risk limits, with a kill switch. <em>(planned)</em>
+            <strong style="color:var(--text-primary)">3. Guarded autonomy</strong> — the backend trades within hard-coded risk limits, with a kill switch. On <strong style="color:var(--text-primary)">paper</strong>, on demand via the Autopilot tab today; scheduled/unattended next. <em>(in progress — paper only)</em>
           </div>
           <p style="margin-top:var(--space-xs)">Guiding rule: <strong style="color:var(--text-primary)">paper before live, small before large</strong>, and execution is always deterministic code — never an AI pulling the trigger unchecked.</p>
         </div>

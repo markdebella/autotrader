@@ -1,0 +1,100 @@
+<!-- Autopilot View (hybrid Phase 3: autonomous paper trading) -->
+<div x-data="AutopilotView()" x-init="init()">
+
+  <div class="page-header">
+    <h1>Autopilot</h1>
+  </div>
+
+  <!-- What this is -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5">
+      Let the strategy trade <strong style="color:var(--text-primary)">on its own — in paper mode</strong> — so you can
+      watch what it buys and sells and how the simulated account grows, with zero real-money risk.
+      Every cycle runs inside your <a href="#" @click.prevent="Router.go('settings')">risk limits</a> (the backend
+      re-checks them), and the <strong style="color:var(--text-primary)">kill switch</strong> halts it instantly.
+      Today you run a cycle <strong style="color:var(--text-primary)">on demand</strong>; scheduled, unattended runs
+      come once you trust what you see here.
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Run a trading cycle</div>
+
+    <!-- Engine -->
+    <div style="margin-top:var(--space-md)">
+      <div class="form-label">Strategy engine</div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:4px">
+        <button class="btn btn-sm" :class="engine === 'ai' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('ai')">AI (Claude)</button>
+        <button class="btn btn-sm" :class="engine === 'rules' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('rules')">Rules</button>
+      </div>
+      <div class="form-hint" style="margin-top:4px">
+        AI picks the trades (rules fallback if Claude is down); Rules is deterministic (buy dips, take profit / cut losses). Either way the hard limits apply.
+      </div>
+    </div>
+
+    <!-- Kill switch -->
+    <div style="margin-top:var(--space-md);display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap">
+      <button class="btn btn-sm" :class="killSwitch ? 'btn-danger' : 'btn-secondary'" @click="toggleKillSwitch()"
+              x-text="killSwitch ? 'Kill switch: ON (halted)' : 'Kill switch: off'"></button>
+      <span class="form-hint" style="margin:0">When on, no cycle will place any trade.</span>
+    </div>
+
+    <!-- Run -->
+    <div style="margin-top:var(--space-md)">
+      <button class="btn btn-primary btn-sm" @click="runNow()" :disabled="running || killSwitch">
+        <span x-show="!running">Run a cycle now</span>
+        <span x-show="running">Running…</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Last run summary -->
+  <template x-if="lastRun">
+    <div class="card" style="margin-bottom:var(--space-md)">
+      <div class="rec-card__head">
+        <div class="card__title" style="margin:0">Last cycle</div>
+        <span class="rec-status" :class="lastRun.halted ? 'denied' : 'executed'"
+              x-text="lastRun.halted ? 'halted' : ((lastRun.engine === 'ai' ? 'AI' : 'rules') + ' · ' + (lastRun.placedCount || 0) + ' placed')"></span>
+      </div>
+
+      <p class="rec-why" x-show="lastRun.halted" x-text="lastRun.reason"></p>
+      <p class="form-hint" x-show="!lastRun.halted">
+        <span x-text="lastRun.marketOpen ? 'Market open' : 'Market closed — orders queue until the open'"></span>
+        · evaluated <span x-text="lastRun.evaluated || 0"></span>
+        <span x-show="lastRun.fallback"> · Claude unavailable, used rules</span>
+      </p>
+
+      <template x-if="!lastRun.halted && actions.length">
+        <div style="display:flex;flex-direction:column;gap:var(--space-sm);margin-top:var(--space-sm)">
+          <template x-for="(a, i) in actions" :key="i">
+            <div class="rec-guardrail" :class="a.status === 'placed' ? 'ok' : 'warn'">
+              <strong>
+                <span class="rec-side" :class="a.side" x-text="(a.side || '').toUpperCase()"></span>
+                <span x-text="actionLabel(a)"></span>
+                <span x-text="' — ' + a.status"></span>
+              </strong>
+              <span x-text="a.reason"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <p class="form-hint" x-show="!lastRun.halted && !actions.length" style="margin-top:var(--space-sm)">
+        No actions this cycle — doing nothing is a valid, safe outcome.
+      </p>
+    </div>
+  </template>
+
+  <!-- Empty state -->
+  <template x-if="!lastRun">
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M9 4h6"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/>
+      </svg>
+      <p style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px">Autopilot is idle</p>
+      <p>Press <strong>Run a cycle now</strong> to let the strategy place paper trades within your risk limits. Results show here, and on the Dashboard.</p>
+    </div>
+  </template>
+
+</div>

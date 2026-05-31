@@ -96,6 +96,18 @@ on paper over several weeks.
 
 **Goal:** trade on your behalf automatically, but only within hard-coded limits.
 
+**Rollout (deliberately staged to build trust on paper first):**
+- **Stage A — on-demand paper autopilot** *(done)*: the **Autopilot** tab runs one cycle when
+  you press a button. The backend (`POST /api/autonomous/run`) decides with AI (Claude, default)
+  or the rules engine, **re-checks every risk limit server-side** (per-order, position-aware
+  per-position, daily trade count, daily loss), honors a kill switch, places the surviving paper
+  orders, and logs them. Lets you watch the strategy and the equity curve with zero real risk.
+- **Stage B — scheduled paper autopilot** *(next)*: Cloud Scheduler calls that same path
+  unattended (e.g. daily at the open). Needs backend-readable config/kill-switch + a run log
+  without a browser (stored Drive token or a small Firestore doc) and scheduler→service auth.
+- **Stage C — live**: only after a proven paper track record; separate live secrets, deliberate
+  promotion, miniscule size.
+
 **Features**
 - **Deterministic execution service** (Python + `alpaca-py`, runs unattended on a
   timer — e.g. cloud function + scheduler, or a tiny always-on VM). Each run:
