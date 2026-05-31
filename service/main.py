@@ -242,18 +242,29 @@ def _extract_json_array(text):
     return json.loads(text)
 
 
-def _claude_recommendations(summary, risk_limits, account):
+def _theme_line(themes):
+    """Guidance sentence that steers the AI toward the user's focus areas without caging it."""
+    themes = [str(t).strip() for t in (themes or []) if str(t).strip()][:12]
+    if not themes:
+        return ""
+    return (" The user is especially bullish on these focus areas: " + "; ".join(themes) + ". "
+            "Favor names in these areas and on the watchlist, but you MAY also propose other sound "
+            "names you judge fit — use your own judgment within the limits.")
+
+
+def _claude_recommendations(summary, risk_limits, account, themes=None):
     """Ask Claude for up to 5 small starter ideas as strict JSON. Key from Secret Manager."""
     api_key = _secret("claude-api-key")
     max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
     system = (
         "You are a cautious trading assistant for a SMALL PAPER (simulated) account. Propose at most 5 "
-        "small starter trade ideas. Education-first; this is NOT financial advice. Prefer buys of watchlist "
-        "names on pullbacks; only suggest a sell for a symbol the account already holds. Each idea's dollars "
-        f"must be <= {max_order:.0f} (the max-order limit). Return ONLY a JSON array (no prose, no code fence), "
+        "small starter trade ideas. Education-first; this is NOT financial advice. Prefer buys on pullbacks; "
+        "only suggest a sell for a symbol the account already holds. Each idea's dollars "
+        f"must be <= {max_order:.0f} (the max-order limit)." + _theme_line(themes) +
+        ' Return ONLY a JSON array (no prose, no code fence), '
         'each item: {"symbol": str, "side": "buy"|"sell", "dollars": number, "reasoning": str (1-2 plain sentences)}.'
     )
-    user = json.dumps({"riskLimits": risk_limits, "account": account, "marketData": summary})
+    user = json.dumps({"riskLimits": risk_limits, "account": account, "themes": themes or [], "marketData": summary})
     resp = requests.post(
         "https://api.anthropic.com/v1/messages",
         headers={
@@ -294,6 +305,7 @@ async def generate_recommendations(request: Request):
     engine      = "rules" if str(body.get("engine", "claude")).lower() == "rules" else "claude"
     watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
     risk_limits = body.get("riskLimits") or {}
+    themes      = body.get("themes") or []
 
     try:
         summary = _summarize(_recent_bars(watchlist))
@@ -313,7 +325,7 @@ async def generate_recommendations(request: Request):
             account = {"buying_power": acct.get("buying_power"), "portfolio_value": acct.get("portfolio_value")}
         except requests.RequestException:
             pass
-        return {"engine": "claude", "recommendations": _claude_recommendations(summary, risk_limits, account)}
+        return {"engine": "claude", "recommendations": _claude_recommendations(summary, risk_limits, account, themes)}
     except Exception as e:
         return {
             "engine": "rules",
@@ -415,7 +427,7 @@ def _rules_autonomous(summary, risk_limits, positions):
     return actions
 
 
-def _claude_autonomous(summary, risk_limits, account, positions):
+def _claude_autonomous(summary, risk_limits, account, positions, themes=None):
     """Ask Claude to choose this cycle's actions as strict JSON. Key from Secret Manager."""
     api_key = _secret("claude-api-key")
     max_order = float(risk_limits.get("maxOrderDollars", 10) or 10)
@@ -426,12 +438,13 @@ def _claude_autonomous(summary, risk_limits, account, positions):
         "You are a cautious AUTONOMOUS trader for a SMALL PAPER (simulated) account — education/demo, "
         "NOT financial advice. Decide this cycle's actions. You may BUY watchlist names (especially on "
         "pullbacks) and may SELL holdings to take profit or cut losses. Only SELL symbols currently held. "
-        f"Each BUY's dollars must be <= {max_order:.0f}. Doing nothing (an empty array) is acceptable and "
-        "often correct. Return ONLY a JSON array (no prose, no code fence); each item is "
-        '{"symbol": str, "side": "buy"|"sell", "dollars": number (buys), "qty": number (sells), '
-        '"reasoning": str (1 short sentence)}.'
+        f"Each BUY's dollars must be <= {max_order:.0f}." + _theme_line(themes) +
+        " Doing nothing (an empty array) is acceptable and often correct. Return ONLY a JSON array "
+        '(no prose, no code fence); each item is {"symbol": str, "side": "buy"|"sell", '
+        '"dollars": number (buys), "qty": number (sells), "reasoning": str (1 short sentence)}.'
     )
-    user = json.dumps({"riskLimits": risk_limits, "account": account, "positions": held, "marketData": summary})
+    user = json.dumps({"riskLimits": risk_limits, "account": account, "positions": held,
+                       "themes": themes or [], "marketData": summary})
     resp = requests.post(
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
@@ -474,6 +487,7 @@ async def autonomous_run(request: Request):
     engine      = "rules" if str(body.get("engine", "ai")).lower() == "rules" else "ai"
     risk_limits = body.get("riskLimits") or {}
     watchlist   = [str(s).upper().strip() for s in (body.get("watchlist") or []) if str(s).strip()][:25]
+    themes      = body.get("themes") or []
 
     if body.get("killSwitch"):
         return {"halted": True, "reason": "Kill switch is on — no trades placed.", "engine": engine, "actions": []}
@@ -506,7 +520,7 @@ async def autonomous_run(request: Request):
     if engine == "ai":
         try:
             acct_min = {"buying_power": account.get("buying_power"), "portfolio_value": account.get("portfolio_value")}
-            proposed, used = _claude_autonomous(summary, risk_limits, acct_min, positions), "ai"
+            proposed, used = _claude_autonomous(summary, risk_limits, acct_min, positions, themes), "ai"
         except Exception:
             proposed, used, fallback = _rules_autonomous(summary, risk_limits, positions), "rules", True
     else:

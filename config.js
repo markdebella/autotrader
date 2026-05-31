@@ -3,7 +3,7 @@
 const CONFIG = {
   clientId: '686821485002-b7in6d56hfqc5bgajnpisf1432urrr93.apps.googleusercontent.com',
   driveFolderName: 'AutoTrader',
-  appVersion: '2026.05.31.09',
+  appVersion: '2026.05.31.10',
 
   // Backend service (Cloud Run) that holds the Alpaca keys in Secret Manager and serves
   // read-only portfolio data. The browser never holds Alpaca keys — see SECURITY.md.
@@ -28,8 +28,13 @@ const CONFIG = {
     maxTradesPerDay:    3,    // low frequency; also stays within the PDT day-trade limit
   },
 
-  // Default watchlist for new users
+  // Default watchlist for new users (specific tickers the engines track / have price context for)
   defaultWatchlist: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'],
+
+  // Default "Focus Areas" — themes that STEER the AI engine (it favors these but may still
+  // pick other sound names). Editable per-user in Settings → Investing Focus. The rules
+  // engine ignores themes (it's deterministic and watchlist-only).
+  defaultThemes: ['Big tech', 'AI & semiconductors', 'Quantum computing', 'Fusion & clean energy'],
 
   // Friendly company names shown next to tickers. Curated for clean display; any
   // symbol not listed here is looked up from Alpaca's read-only assets API and cached.

@@ -26,14 +26,14 @@ const Api = (() => {
       return resp.json();
     },
 
-    /** Ask the backend to generate trade ideas. engine: 'claude' | 'rules'. */
-    async generateRecommendations({ engine, watchlist, riskLimits }) {
+    /** Ask the backend to generate trade ideas. engine: 'claude' | 'rules'. themes steer the AI. */
+    async generateRecommendations({ engine, watchlist, riskLimits, themes }) {
       const token = Auth.getToken();
       if (!token) throw new Error('Not signed in');
       const resp = await fetch(base() + '/api/recommendations/generate', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ engine, watchlist, riskLimits }),
+        body: JSON.stringify({ engine, watchlist, riskLimits, themes }),
       });
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
@@ -70,13 +70,13 @@ const Api = (() => {
      * The backend enforces every risk limit + the kill switch and places the surviving
      * orders. Returns { engine, fallback, marketOpen, evaluated, placedCount, actions:[...] }.
      */
-    async runAutonomous({ engine, watchlist, riskLimits, killSwitch }) {
+    async runAutonomous({ engine, watchlist, riskLimits, killSwitch, themes }) {
       const token = Auth.getToken();
       if (!token) throw new Error('Not signed in');
       const resp = await fetch(base() + '/api/autonomous/run', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ engine, watchlist, riskLimits, killSwitch }),
+        body: JSON.stringify({ engine, watchlist, riskLimits, killSwitch, themes }),
       });
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');

@@ -101,8 +101,29 @@ function Analytics() {
 function Settings() {
   return {
     riskLimits: { ...CONFIG.defaultRiskLimits },
+    watchlistText: '',   // editable comma/space/newline-separated tickers
+    themesText: '',      // editable focus areas, one per line
 
     get driveFolderId() { return Drive.getFolderId(); },
+
+    /** Parse the watchlist textarea into a clean ticker array. */
+    _parseWatchlist() {
+      return [...new Set((this.watchlistText || '').toUpperCase().split(/[\s,]+/)
+        .map(s => s.trim()).filter(Boolean))].slice(0, 40);
+    },
+    /** Parse the focus-areas textarea (one theme per line, or comma-separated). */
+    _parseThemes() {
+      return (this.themesText || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 12);
+    },
+
+    async saveFocus() {
+      const settings = Alpine.store('data').settings || {};
+      settings.watchlist = this._parseWatchlist();
+      settings.themes    = this._parseThemes();
+      Alpine.store('data').settings = { ...settings };
+      await Drive.saveSettings(settings);
+      Toast.success('Investing focus saved.');
+    },
 
     // ── Secret Manager key management (shown as copyable Cloud Shell commands) ──
     // Every key lives ONLY in Google Secret Manager; these commands rotate a key in place.
@@ -134,6 +155,10 @@ function Settings() {
         // Merge over defaults so existing users get any newly-added limit fields.
         this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
       }
+      const wl = (settings && settings.watchlist) || CONFIG.defaultWatchlist || [];
+      const th = (settings && settings.themes)    || CONFIG.defaultThemes    || [];
+      this.watchlistText = wl.join(', ');
+      this.themesText    = th.join('\n');
     },
 
     async saveRiskLimits() {
@@ -223,6 +248,7 @@ function RecommendationsView() {
           engine:     'claude',   // AI-primary; the backend falls back to rules if Claude is down
           watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
           riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
+          themes:     settings.themes     || CONFIG.defaultThemes,
         });
         const fresh = res.recommendations || [];
         // Replace old pending/sample ideas with the new batch; preserve decided/executed ones.
@@ -384,6 +410,7 @@ function AutopilotView() {
           watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
           riskLimits: settings.riskLimits || CONFIG.defaultRiskLimits,
           killSwitch: this.killSwitch,
+          themes:     settings.themes     || CONFIG.defaultThemes,
         });
         this.lastRun   = res;
         this.lastRunAt = Utils.nowISO();

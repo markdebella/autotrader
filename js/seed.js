@@ -26,6 +26,7 @@ const DefaultSettings = {
         engine: 'rules',
       },
       watchlist: [...CONFIG.defaultWatchlist],
+      themes: [...(CONFIG.defaultThemes || [])],   // steer the AI engine; see Settings → Investing Focus
       notifications: {
         enabled: false,
         orderFills: true,

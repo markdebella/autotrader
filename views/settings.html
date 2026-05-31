@@ -43,6 +43,31 @@
     </div>
   </div>
 
+  <!-- Investing focus: watchlist + themes that steer the AI -->
+  <div class="card" style="margin-bottom:var(--space-md)">
+    <div class="card__title">Investing Focus</div>
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:var(--space-sm)">
+      Steer the <strong style="color:var(--text-primary)">AI</strong> engine (Ideas + Autopilot) toward what you care about.
+      It favors these, but still makes its own choices within your risk limits. The rules engine uses only the watchlist.
+    </p>
+
+    <div style="margin-top:var(--space-md)">
+      <div class="form-group">
+        <label class="form-label">Watchlist (tickers)</label>
+        <textarea class="form-input" x-model="watchlistText" rows="2"
+                  style="font-family:monospace" placeholder="AAPL, MSFT, NVDA, IONQ"></textarea>
+        <div class="form-hint">Specific symbols to track and have price context for. Separate with commas or spaces.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Focus areas (themes)</label>
+        <textarea class="form-input" x-model="themesText" rows="4"
+                  placeholder="Quantum computing&#10;Fusion &amp; clean energy&#10;AI &amp; semiconductors&#10;Big tech"></textarea>
+        <div class="form-hint">One theme per line. The AI is told to favor these but may also pick other sound names it judges fit.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" @click="saveFocus()">Save Investing Focus</button>
+    </div>
+  </div>
+
   <!-- Managing API keys (Secret Manager) -->
   <div class="card" style="margin-bottom:var(--space-md)">
     <div class="card__title">Managing Your API Keys</div>
