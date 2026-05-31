@@ -62,11 +62,13 @@ gcloud run deploy autotrader-api \
   --service-account "$SA" \
   --allow-unauthenticated \
   --min-instances=0 --max-instances=2 \
-  --set-env-vars "GCP_PROJECT=${PROJECT_ID},OWNER_EMAIL=${OWNER_EMAIL},OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID},ALLOWED_ORIGINS=${ORIGINS},ALPACA_PAPER=true"
+  --set-env-vars "^;^GCP_PROJECT=${PROJECT_ID};OWNER_EMAIL=${OWNER_EMAIL};OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID};ALLOWED_ORIGINS=${ORIGINS};ALPACA_PAPER=true"
 ```
 - `--allow-unauthenticated` lets your browser reach it; the **service itself** still requires
   your Google ID token + owner email on every data endpoint, so it's not open to others.
 - `--min-instances=0` = scale to zero (free when idle). `--max-instances=2` caps runaway cost.
+- The `^;^` prefix tells gcloud to split entries on `;` instead of `,` — needed because
+  `ALLOWED_ORIGINS` contains commas (and `OWNER_EMAIL` contains an `@`).
 
 When it finishes, note the **Service URL** it prints (e.g. `https://autotrader-api-xxxx.run.app`).
 
