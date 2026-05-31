@@ -86,20 +86,27 @@ const Auth = (() => {
         cancel_on_tap_outside: false,
       });
 
-      // 3. Load GAPI, then silently restore the session if we were signed in before.
+      // 3. Load GAPI, then show Google One Tap (the top-right account prompt) — no popup.
       gapi.load('client', async () => {
         await gapi.client.init({});
         gapiReady = true;
         Alpine.store('auth').gapiReady = true;
 
-        // Keep the user signed in across reloads WITHOUT a popup: prompt:'none' returns a
-        // token via a hidden iframe when they still have an active Google session + prior
-        // consent (seamless). If it can't, GIS returns an error (no UI shown) which
-        // handleToken turns into 'signed_out' → the Sign In button. Same behavior on
-        // localhost and the live site; never opens a blocked popup.
-        if (localStorage.getItem('at_signed_in')) {
-          tokenClient.requestAccessToken({ prompt: 'none' });
-        }
+        // One Tap (top-right toast). With auto_select, a returning user is signed in
+        // automatically; a new user gets a one-tap chooser. handleCredential exchanges
+        // the One Tap ID token for an access token (silently, since consent is granted).
+        // If One Tap can't display here (dismissed, or unsupported on this origin/IP),
+        // fall back without a popup: returning users via a silent token restore, new
+        // users to the Sign In button.
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            if (localStorage.getItem('at_signed_in')) {
+              tokenClient.requestAccessToken({ prompt: 'none' });
+            } else {
+              Alpine.store('auth').status = 'signed_out';
+            }
+          }
+        });
       });
     },
 

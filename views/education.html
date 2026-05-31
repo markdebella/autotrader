@@ -2,90 +2,68 @@
 <div x-data="Education()" x-init="init()">
 
   <div class="page-header">
-    <h1>Learn Trading</h1>
+    <h1>Learn</h1>
   </div>
 
   <!-- Tab bar -->
   <div class="tab-bar">
-    <button :class="{active: tab === 'mcp'}" @click="tab = 'mcp'">MCP Setup</button>
+    <button :class="{active: tab === 'mcp'}" @click="tab = 'mcp'">How It Works</button>
     <button :class="{active: tab === 'glossary'}" @click="tab = 'glossary'">Glossary</button>
-    <button :class="{active: tab === 'howto'}" @click="tab = 'howto'">How It Works</button>
+    <button :class="{active: tab === 'howto'}" @click="tab = 'howto'">Trading Basics</button>
   </div>
 
-  <!-- MCP Setup tab -->
+  <!-- How It Works tab -->
   <template x-if="tab === 'mcp'">
     <div>
-      <!-- What is MCP -->
+      <!-- What AutoTrader is -->
       <div class="card" style="margin-bottom:var(--space-md)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Trading with Claude + Alpaca MCP</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">What AutoTrader Is</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
-          <p>This dashboard is <strong style="color:var(--text-primary)">read-only</strong> — it shows your portfolio, positions, and trade history. All actual trading is done through <strong style="color:var(--text-primary)">Claude Code</strong> using the <strong style="color:var(--text-primary)">Alpaca MCP server</strong>.</p>
-          <p>The MCP (Model Context Protocol) server gives Claude direct access to 60+ Alpaca API tools — placing orders, checking quotes, managing watchlists, analyzing portfolio data, and more — all through natural language.</p>
+          <p>A <strong style="color:var(--text-primary)">visual, read-only dashboard</strong> for your Alpaca account — defaulting to <strong style="color:var(--text-primary)">paper (simulated) trading</strong>. It's <strong style="color:var(--text-primary)">education-first</strong>: it helps you understand your portfolio and proposes trade ideas you approve. It never trades on its own, and the dashboard itself never places orders.</p>
         </div>
       </div>
 
-      <!-- Prerequisites -->
+      <!-- Security: where your keys live -->
       <div class="card" style="margin-bottom:var(--space-md)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Prerequisites</div>
-        <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
-          <li>Install <strong style="color:var(--text-primary)">Python 3.10+</strong> from <a href="https://python.org" target="_blank">python.org</a></li>
-          <li>Install <strong style="color:var(--text-primary)">uv</strong> (Python package manager):
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">pip install uv</code>
-          </li>
-          <li>Install <strong style="color:var(--text-primary)">Claude Code</strong> CLI if you haven't already</li>
-          <li>Have your <strong style="color:var(--text-primary)">Alpaca API keys</strong> ready (same ones you entered in Settings)</li>
-        </ol>
-      </div>
-
-      <!-- MCP Configuration -->
-      <div class="card" style="margin-bottom:var(--space-md)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">MCP Server Configuration</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Your Keys &amp; Security</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
-          <p>The <code>.mcp.json</code> file in this project is pre-configured. Your API keys are stored as <strong style="color:var(--text-primary)">Windows environment variables</strong> so they never end up in any file in the repo.</p>
-          <p style="margin-top:var(--space-xs)">Set these in <strong style="color:var(--text-primary)">Windows Settings &gt; System &gt; About &gt; Advanced system settings &gt; Environment Variables</strong> (User variables):</p>
-          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;overflow-x:auto;line-height:1.8">ALPACA_API_KEY = PK...<br>ALPACA_SECRET_KEY = your-secret-key</div>
-          <p style="margin-top:var(--space-xs)">Or via PowerShell (runs once, persists across reboots):</p>
-          <div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem;font-family:monospace;overflow-x:auto;line-height:1.8">[Environment]::SetEnvironmentVariable("ALPACA_API_KEY", "PK...", "User")<br>[Environment]::SetEnvironmentVariable("ALPACA_SECRET_KEY", "your-secret", "User")</div>
-          <p style="margin-top:var(--space-xs)">After setting these, restart your terminal. The MCP server inherits them automatically — no secrets in any config file.</p>
+          <p>Your Alpaca API keys are <strong style="color:var(--text-primary)">never entered or stored in this app or your browser</strong>. They live only in <strong style="color:var(--text-primary)">Google Secret Manager</strong> and are read by a small backend service (Google Cloud Run) that this dashboard fetches data from.</p>
+          <p>Your settings and trade history live in <strong style="color:var(--text-primary)">your own Google Drive</strong>. Because everything is tied to your Google sign-in, you can open AutoTrader on any computer and your data is there — with no keys exposed anywhere. (Details: <code>SECURITY.md</code> in the repo.)</p>
         </div>
       </div>
 
-      <!-- Example commands -->
+      <!-- The dashboard + Explain -->
       <div class="card" style="margin-bottom:var(--space-md)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Example Claude Commands</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Reading the Dashboard</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>The <strong style="color:var(--text-primary)">Dashboard</strong> shows your portfolio value, today's change, buying power, positions, open orders, and market status.</p>
+          <p>Every number has an <strong style="color:var(--text-primary)">"Explain" (ⓘ)</strong> control: <strong style="color:var(--text-primary)">hover</strong> for a quick definition, or <strong style="color:var(--text-primary)">click</strong> for a plain-English explanation grounded in your real numbers, with links into the Glossary. If you ever see something you don't understand, that's the button to press.</p>
+        </div>
+      </div>
+
+      <!-- Ideas / approve flow -->
+      <div class="card" style="margin-bottom:var(--space-md)">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Trade Ideas (Approve / Deny)</div>
+        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
+          <p>The <strong style="color:var(--text-primary)">Ideas</strong> tab lists trade suggestions for <strong style="color:var(--text-primary)">you</strong> to approve or deny — nothing trades automatically. Each idea shows <em>what</em> (symbol, side, size), <em>why</em> (reasoning), and how it fits within your <a href="#" @click.prevent="Router.go('settings')">risk limits</a>.</p>
+          <p><strong style="color:var(--text-primary)">Approving</strong> records your decision and copies a ready-to-run command you paste into <strong style="color:var(--text-primary)">Claude Code</strong>, which places the order in <strong style="color:var(--text-primary)">paper mode</strong>. An idea that would breach a risk limit can't be approved.</p>
+        </div>
+      </div>
+
+      <!-- Roadmap -->
+      <div class="card">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">The Plan: Trust in Stages</div>
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-md)">
           <div>
-            <strong style="color:var(--text-primary)">Check your portfolio</strong>
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Show me my current portfolio and positions"</code>
+            <strong style="color:var(--gain)">1. Educate</strong> — understand every number on your dashboard. <em>(done)</em>
           </div>
           <div>
-            <strong style="color:var(--text-primary)">Place a trade</strong>
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Buy 10 shares of AAPL at market price"</code>
+            <strong style="color:var(--text-primary)">2. Recommend + approve</strong> — ideas you approve or deny; execution stays in your hands. Still paper. <em>(in progress — the Ideas tab)</em>
           </div>
           <div>
-            <strong style="color:var(--text-primary)">Get a quote</strong>
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"What's the current price of TSLA?"</code>
+            <strong style="color:var(--text-muted)">3. Guarded autonomy</strong> — a deterministic service trades on a schedule, but only within hard-coded risk limits, with a kill switch. <em>(planned)</em>
           </div>
-          <div>
-            <strong style="color:var(--text-primary)">Analyze a stock</strong>
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Analyze MSFT — give me price history, volume trends, and your take"</code>
-          </div>
-          <div>
-            <strong style="color:var(--text-primary)">Auto-trade with /loop</strong>
-            <code style="display:block;margin-top:4px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.82rem">"Check my positions every 5 minutes. If any position drops more than 3%, sell it."</code>
-            <div class="form-hint" style="margin-top:4px">Use Claude Code's <code>/loop</code> command to run automated monitoring and trading strategies.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Safety note -->
-      <div class="card" style="border-color:var(--warning)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md);color:var(--warning)">
-          Safety: Paper Trading First
-        </div>
-        <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
-          <p>The MCP server defaults to <strong>paper trading mode</strong> (<code>ALPACA_PAPER_TRADE=true</code>). This means all trades use simulated money — you can't lose real funds while learning.</p>
-          <p>To switch to live trading, change <code>ALPACA_PAPER_TRADE</code> to <code>"false"</code> in <code>.mcp.json</code>. <strong style="color:var(--danger)">Only do this when you're confident in your strategy and understand the risks.</strong></p>
+          <p style="margin-top:var(--space-xs)">Guiding rule: <strong style="color:var(--text-primary)">paper before live, small before large</strong>, and execution is always deterministic code — never an AI pulling the trigger unchecked.</p>
         </div>
       </div>
     </div>
@@ -118,20 +96,19 @@
     </div>
   </template>
 
-  <!-- How-to tab -->
+  <!-- Trading Basics tab -->
   <template x-if="tab === 'howto'">
     <div>
-      <!-- How to place your first trade via MCP -->
+      <!-- How a trade happens here -->
       <div class="card" style="margin-bottom:var(--space-md)">
-        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">Placing Your First Trade</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:var(--space-md)">How a Trade Happens in AutoTrader</div>
         <ol style="color:var(--text-secondary);font-size:0.9rem;padding-left:var(--space-lg);display:flex;flex-direction:column;gap:var(--space-sm)">
-          <li>Go to <strong>Settings</strong> and enter your Alpaca API keys (paper trading first!)</li>
-          <li>Set up the <strong>Alpaca MCP server</strong> in Claude Code (see <strong>MCP Setup</strong> tab)</li>
-          <li>Open <strong>Claude Code</strong> in this project directory</li>
-          <li>Tell Claude: <em>"Buy 5 shares of AAPL at market price"</em></li>
-          <li>Claude will confirm the order details before executing</li>
-          <li>Come back to this <strong>Dashboard</strong> and click <strong>Refresh</strong> to see your new position!</li>
+          <li>A suggestion appears in <strong>Ideas</strong> (or you decide on your own).</li>
+          <li>You <strong>Approve</strong> it — only allowed if it passes your risk limits.</li>
+          <li>The order is placed in <strong>paper mode</strong> (today: by running the copied command in Claude Code; later: automatically by the guarded execution service).</li>
+          <li>Come back to the <strong>Dashboard</strong> and press <strong>Refresh</strong> to see the order and, once it fills, your new position.</li>
         </ol>
+        <div class="form-hint" style="margin-top:var(--space-sm)">Orders placed while the market is closed sit as <strong>open orders</strong> ("accepted") and fill when the market next opens.</div>
       </div>
 
       <!-- Understanding order types -->
@@ -159,7 +136,7 @@
         <div style="color:var(--text-secondary);font-size:0.9rem;display:flex;flex-direction:column;gap:var(--space-sm)">
           <p><strong style="color:var(--text-primary)">Unrealized P&L:</strong> The profit or loss on stocks you still own. It's "on paper" — it can change until you sell.</p>
           <p><strong style="color:var(--text-primary)">Realized P&L:</strong> The actual profit or loss from stocks you've already sold. This is locked in.</p>
-          <p><strong style="color:var(--text-primary)">Daily P&L:</strong> How much your portfolio value has changed since the market opened today.</p>
+          <p><strong style="color:var(--text-primary)">Daily P&L:</strong> How much your portfolio value has changed since the market last closed.</p>
         </div>
       </div>
 
@@ -172,7 +149,7 @@
           <p>If your account has <strong>less than $25,000</strong>, FINRA limits you to <strong>3 day trades per 5 business days</strong>.</p>
           <p>A "day trade" = buying and selling the same stock on the same day.</p>
           <p>If you exceed this limit, your account may be <strong>restricted for 90 days</strong>, allowing only closing trades (selling what you already own).</p>
-          <p><strong style="color:var(--text-primary)">Tip:</strong> This doesn't apply to paper trading, but it's critical to understand before going live.</p>
+          <p><strong style="color:var(--text-primary)">Tip:</strong> This doesn't apply to paper trading, but it's critical to understand before going live. Your <a href="#" @click.prevent="Router.go('settings')">risk limits</a> include a max-trades-per-day cap to help stay within it.</p>
         </div>
       </div>
     </div>
