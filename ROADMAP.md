@@ -36,8 +36,14 @@ educate first, recommend-with-approval second, guarded autonomy last — and sta
 - **Claude (LLM)** — educator + analyst + proposer. Never the thing that pulls the
   trigger on a live order.
 - **Execution service** — *new in Phase 3*. Small deterministic service (Python +
-  `alpaca-py`) that runs on a schedule and places orders **only** within the hard
-  risk limits.
+  `alpaca-py`) on **Google Cloud Run**, triggered by **Cloud Scheduler**, that places
+  orders **only** within the hard risk limits. It is the **only** holder of the Alpaca
+  keys, read at runtime from **Google Secret Manager**.
+
+> **Key custody:** see [`SECURITY.md`](SECURITY.md). Decided 2026-05-30: API keys live
+> only in Google Secret Manager and are never exposed to the browser, Drive, env vars, or
+> the repo — applied to paper *and* live from the start. The dashboard becomes a pure
+> viewer that reads data from the service; the current keys-in-Drive path is legacy.
 
 ---
 

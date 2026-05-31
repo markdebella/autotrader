@@ -60,8 +60,12 @@ Scripts load in a fixed order (see `index.html`) because they rely on globals, n
 
 - **Keep `alpaca.js` read-only.** Trading goes through the Alpaca MCP server, not the
   browser app. Adding buy/sell/cancel calls here is out of scope.
-- **No secrets in the repo.** API keys live in the user's Google Drive `settings.json`
-  at runtime, never in source.
+- **No secrets in the repo.** Only the public OAuth client ID is committed.
+- **Key custody is moving to the hardened model in [`SECURITY.md`](SECURITY.md)** —
+  API keys belong **only** in Google Secret Manager, read by a backend service, **never in
+  the browser, Drive, env vars, or the repo** (paper *and* live). The current
+  keys-in-Drive/browser path is **legacy, to be removed** when the backend service lands.
+  Do not add new key exposure (no env-var or local-file key storage) in the meantime.
 - **Cache-busting:** `index.html` references assets with `?v=` query strings and
   `CONFIG.appVersion` (format `YYYY.MM.DD.NN`). Bump `appVersion` in `config.js` when
   shipping changes that must invalidate caches.
