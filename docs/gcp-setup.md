@@ -40,10 +40,9 @@ Typed at a hidden prompt so the key never lands in your shell history:
 read -rs -p "Alpaca paper API key:    " K; printf "%s" "$K" | gcloud secrets create alpaca-paper-key    --data-file=-; unset K; echo
 read -rs -p "Alpaca paper secret key: " S; printf "%s" "$S" | gcloud secrets create alpaca-paper-secret --data-file=-; unset S; echo
 
-# Optional — only for the Gemini (AI) recommendation engine (the Ideas-tab default). Create a
-# key with your Google account at https://aistudio.google.com/apikey (free tier). Skip it to
-# use the free rules engine.
-read -rs -p "Gemini API key: " C; printf "%s" "$C" | gcloud secrets create gemini-api-key --data-file=-; unset C; echo
+# Optional — only for the Claude (AI) recommendation engine (the Ideas-tab default). Get a
+# key at https://console.anthropic.com → API Keys. Skip it to use the free rules engine.
+read -rs -p "Claude (Anthropic) API key: " C; printf "%s" "$C" | gcloud secrets create claude-api-key --data-file=-; unset C; echo
 ```
 
 ## 3. Create a least-privilege service account for the service
@@ -55,8 +54,8 @@ SA="autotrader-api@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud secrets add-iam-policy-binding alpaca-paper-key    --member="serviceAccount:${SA}" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding alpaca-paper-secret --member="serviceAccount:${SA}" --role="roles/secretmanager.secretAccessor"
 
-# Only if you created the Gemini key above:
-gcloud secrets add-iam-policy-binding gemini-api-key --member="serviceAccount:${SA}" --role="roles/secretmanager.secretAccessor"
+# Only if you created the Claude key above:
+gcloud secrets add-iam-policy-binding claude-api-key --member="serviceAccount:${SA}" --role="roles/secretmanager.secretAccessor"
 ```
 
 ## 4. Get the code and deploy to Cloud Run

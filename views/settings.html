@@ -40,11 +40,11 @@
       How the <a href="#" @click.prevent="Router.go('recommendations')">Ideas</a> tab generates trade suggestions.
     </p>
     <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);flex-wrap:wrap">
-      <button class="btn btn-sm" :class="engine==='gemini' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('gemini')">Gemini (AI)</button>
+      <button class="btn btn-sm" :class="engine==='claude' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('claude')">Claude (AI)</button>
       <button class="btn btn-sm" :class="engine==='rules' ? 'btn-primary' : 'btn-secondary'" @click="setEngine('rules')">Rules-based</button>
     </div>
-    <div class="form-hint" style="margin-top:var(--space-sm)" x-show="engine==='gemini'">
-      Default. Google Gemini analyzes your watchlist &amp; recent market data and writes explained ideas. The Gemini API key lives in Google Secret Manager — never in the browser.
+    <div class="form-hint" style="margin-top:var(--space-sm)" x-show="engine==='claude'">
+      Default. Claude analyzes your watchlist &amp; recent market data and writes explained ideas. The Claude API key lives in Google Secret Manager — never in the browser.
     </div>
     <div class="form-hint" style="margin-top:var(--space-sm)" x-show="engine==='rules'">
       Deterministic rules on recent prices — no AI and no extra cost.

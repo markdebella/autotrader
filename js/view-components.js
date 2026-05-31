@@ -99,7 +99,7 @@ function Analytics() {
 function Settings() {
   return {
     riskLimits: { ...CONFIG.defaultRiskLimits },
-    engine: 'gemini',   // recommendation engine: 'gemini' (AI) | 'rules'
+    engine: 'claude',   // recommendation engine: 'claude' (AI) | 'rules'
 
     get driveFolderId() { return Drive.getFolderId(); },
 
@@ -108,8 +108,7 @@ function Settings() {
       if (settings) {
         // Merge over defaults so existing users get any newly-added limit fields.
         this.riskLimits = { ...CONFIG.defaultRiskLimits, ...(settings.riskLimits || {}) };
-        // Treat any non-'rules' value (incl. legacy 'claude') as the AI engine.
-        this.engine = settings.recommendations?.engine === 'rules' ? 'rules' : 'gemini';
+        this.engine = settings.recommendations?.engine || 'claude';
       }
     },
 
@@ -119,7 +118,7 @@ function Settings() {
       settings.recommendations = { ...(settings.recommendations || {}), engine };
       Alpine.store('data').settings = { ...settings };
       await Drive.saveSettings(settings);
-      Toast.success(`Ideas engine set to ${engine === 'rules' ? 'Rules-based' : 'Gemini (AI)'}.`);
+      Toast.success(`Ideas engine set to ${engine === 'rules' ? 'Rules-based' : 'Claude (AI)'}.`);
     },
 
     async saveRiskLimits() {
@@ -194,8 +193,8 @@ function RecommendationsView() {
     generating: false,
 
     get engineLabel() {
-      const e = (Alpine.store('data').settings?.recommendations?.engine) || 'gemini';
-      return e === 'rules' ? 'Rules' : 'Gemini (AI)';
+      const e = (Alpine.store('data').settings?.recommendations?.engine) || 'claude';
+      return e === 'rules' ? 'Rules' : 'Claude (AI)';
     },
 
     sizeLabel(rec)  { return Recs.sizeLabel(rec); },
@@ -207,7 +206,7 @@ function RecommendationsView() {
       this.generating = true;
       try {
         const settings = Alpine.store('data').settings || {};
-        const engine = settings.recommendations?.engine || 'gemini';
+        const engine = settings.recommendations?.engine || 'claude';
         const res = await Api.generateRecommendations({
           engine,
           watchlist:  settings.watchlist  || CONFIG.defaultWatchlist,
@@ -224,9 +223,9 @@ function RecommendationsView() {
         });
         Company.ensure(fresh.map(r => r.symbol));
         if (res.fallback) {
-          Toast.info(`Gemini was unavailable — generated ${fresh.length} rules-based idea${fresh.length === 1 ? '' : 's'}.`);
+          Toast.info(`Claude was unavailable — generated ${fresh.length} rules-based idea${fresh.length === 1 ? '' : 's'}.`);
         } else {
-          Toast.success(`Generated ${fresh.length} ${res.engine === 'rules' ? 'rules-based' : 'AI'} idea${fresh.length === 1 ? '' : 's'}.`);
+          Toast.success(`Generated ${fresh.length} ${res.engine === 'claude' ? 'AI' : 'rules-based'} idea${fresh.length === 1 ? '' : 's'}.`);
         }
       } catch (err) {
         console.error('Generate recommendations failed:', err);

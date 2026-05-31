@@ -27,13 +27,13 @@ educate first, recommend-with-approval second, guarded autonomy last — and sta
 └────────▲────────┘   settings/limits   └──────▲───────────┘
          │                                      │ signals / strategy
          │             analyzes & proposes      │
-         └──────────────  Gemini (LLM)  ─────────┘
+         └──────────────  Claude (LLM)  ─────────┘
 ```
 
 - **Dashboard** — existing static site. Read-only. The "watch it work" surface.
 - **Google Drive** — existing data store (`manifest.json`, `settings.json`,
   `trade-{uuid}.json`). We add `recommendations.json` and a kill-switch flag.
-- **Gemini (LLM)** — educator + analyst + proposer. Never the thing that pulls the
+- **Claude (LLM)** — educator + analyst + proposer. Never the thing that pulls the
   trigger on a live order.
 - **Execution service** — *new in Phase 3*. Small deterministic service (Python +
   `alpaca-py`) on **Google Cloud Run**, triggered by **Cloud Scheduler**, that places
@@ -67,11 +67,11 @@ educate first, recommend-with-approval second, guarded autonomy last — and sta
 
 ## Phase 2 — Recommend + approve (human-in-the-loop)
 
-**Goal:** Gemini (or the rules engine) proposes trades; **you** approve or deny each one. Nothing executes
+**Goal:** Claude proposes trades; **you** approve or deny each one. Nothing executes
 without your tap. Still **paper mode**.
 
 **Features**
-- Backend analysis (Gemini or rules) writes `recommendations.json` to Drive: each item has
+- Scheduled Claude analysis writes `recommendations.json` to Drive: each item has
   `{ id, symbol, side, qty/dollars, reasoning, guardrailCheck, createdAt, status }`.
 - New **Recommendations** feed in the dashboard: card per rec showing *what*, *why*,
   and which limits it respects, plus **Approve / Deny** buttons.
@@ -81,7 +81,7 @@ without your tap. Still **paper mode**.
 
 **Touches:** new `views/recommendations.html` + component, `drive.js`
 (load/save recommendations), `manifest.js` (link recs ↔ trades), scheduling
-(Cloud Scheduler triggering the backend).
+(Claude `/schedule` routine or a cron job).
 
 **Exit criteria:** the recommendations are good enough that you'd trust them — proven
 on paper over several weeks.
@@ -101,8 +101,8 @@ on paper over several weeks.
   you can halt everything instantly from your phone.
 - LLM still does the analysis/strategy proposals; **code pulls the trigger.**
 - Graduate from "approve every trade" → "approve the strategy + limits, review daily."
-- The settings scaffold already exists: `settings.ai.autonomousMode` and
-  `settings.ai.maxAutonomousDollars`.
+- The settings scaffold already exists: `settings.claude.autonomousMode` and
+  `settings.claude.maxAutonomousDollars`.
 
 **Touches:** new execution service (separate from the static site), hosting +
 scheduling, Drive read/write of limits + kill switch, audit logging.
