@@ -34,10 +34,43 @@
             </template>
           </div>
 
-          <!-- Chart placeholder -->
+          <!-- Funds over time -->
           <div class="card">
+            <div class="card__title">Portfolio value</div>
+            <div class="form-hint" style="margin-bottom:var(--space-sm)">Your paper funds trending over time. Green = up over the window, red = down.</div>
             <div class="chart-container">
               <canvas id="portfolio-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Per-position price charts -->
+          <div style="margin-top:var(--space-md)">
+            <div class="card__title" style="margin-bottom:var(--space-sm)">Your positions (last 30 days)</div>
+            <template x-if="positions.length === 0">
+              <div class="empty-state" style="padding:var(--space-lg)">
+                <p>No open positions yet. Once Autopilot or an approved idea fills, each holding's price chart shows here.</p>
+              </div>
+            </template>
+            <div class="position-chart-grid">
+              <template x-for="p in positions" :key="p.symbol">
+                <div class="card position-chart-card">
+                  <div class="position-chart-card__head">
+                    <div>
+                      <span class="rec-symbol" style="margin:0" x-text="p.symbol"></span>
+                      <span class="company-name" x-show="companyName(p.symbol)" x-text="companyName(p.symbol)"></span>
+                    </div>
+                    <span :style="`color:${Number(p.unrealized_plpc) >= 0 ? 'var(--gain)' : 'var(--loss)'};font-weight:700;font-size:0.85rem`"
+                          x-text="(Number(p.unrealized_plpc) >= 0 ? '+' : '') + (Number(p.unrealized_plpc) * 100).toFixed(2) + '%'"></span>
+                  </div>
+                  <div class="position-chart-mini">
+                    <canvas :id="'pos-chart-' + p.symbol"></canvas>
+                  </div>
+                  <div class="position-chart-card__foot">
+                    <span x-text="Utils.formatShares(p.qty) + ' sh'"></span>
+                    <span x-text="Utils.formatCurrency(p.market_value)"></span>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>

@@ -149,6 +149,41 @@ def portfolio(request: Request):
         raise HTTPException(status_code=502, detail="Could not reach Alpaca")
 
 
+@app.get("/api/portfolio/history")
+def portfolio_history(request: Request, period: str = "1M", timeframe: str = "1D"):
+    """Equity timeseries for the funds-over-time chart (Alpaca portfolio history)."""
+    _require_owner(request)
+    period = period if period in {"1D", "1W", "1M", "3M", "1A", "all"} else "1M"
+    timeframe = timeframe if timeframe in {"1Min", "5Min", "15Min", "1H", "1D"} else "1D"
+    try:
+        return _alpaca_get("/v2/account/portfolio/history",
+                           {"period": period, "timeframe": timeframe, "extended_hours": "false"})
+    except requests.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Alpaca error: {e.response.status_code}")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca")
+
+
+@app.get("/api/bars")
+def bars(request: Request, symbols: str = "", days: int = 40):
+    """Daily bars per symbol for the per-position price charts (free IEX feed)."""
+    _require_owner(request)
+    syms = [s.upper().strip() for s in symbols.split(",") if s.strip()][:30]
+    if not syms:
+        return {"bars": {}}
+    days = max(5, min(int(days or 40), 400))
+    start = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
+    try:
+        data = _alpaca_data_get("/v2/stocks/bars", {
+            "symbols": ",".join(syms), "timeframe": "1Day", "start": start, "feed": "iex", "limit": 10000,
+        })
+        return {"bars": data.get("bars", {}) or {}}
+    except requests.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"Alpaca data error: {e.response.status_code}")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Could not reach Alpaca market data")
+
+
 # ── Recommendation generation (Phase 2) ─────────────────────────────────────────
 # The backend generates trade ideas: it has the market data and (for the Claude engine)
 # the Claude API key in Secret Manager. The browser triggers this and saves the result to

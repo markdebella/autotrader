@@ -75,24 +75,102 @@ function Analytics() {
   return {
     tab: 'portfolio',
     timeframe: '1M',
+    loading: false,
+    _charts: {},        // canvas id -> Chart instance (so we can destroy before re-render)
 
     get alpacaConnected() { return Alpine.store('data').alpacaConfigured; },
-
-    get trades() {
-      const manifest = Alpine.store('data').manifest;
-      return manifest?.trades || [];
-    },
+    get positions() { return Alpine.store('portfolio').positions || []; },
+    get trades() { return Alpine.store('data').manifest?.trades || []; },
 
     init() {
-      if (Alpaca.isConfigured()) {
-        this.loadChart();
-      }
+      if (Api.isConfigured()) this.$nextTick(() => this.loadChart());
+      // Re-render when returning to the Portfolio tab (x-if rebuilds the canvases).
+      this.$watch('tab', (t) => { if (t === 'portfolio') this.$nextTick(() => this.loadChart()); });
     },
 
-    async loadChart() {
-      // Portfolio chart will be implemented in Phase 3
-      // For now, just show the canvas placeholder
+    _destroy(id) {
+      if (this._charts[id]) { try { this._charts[id].destroy(); } catch {} delete this._charts[id]; }
     },
+
+    /** Load + render the equity curve and the per-position charts. */
+    async loadChart() {
+      if (!Api.isConfigured() || typeof Chart === 'undefined') return;
+      this.loading = true;
+      try {
+        const resolution = this.timeframe === '1D' ? '15Min' : '1D';
+        const hist = await Api.getPortfolioHistory({ period: this.timeframe, timeframe: resolution });
+        this.$nextTick(() => this.renderEquityChart(hist));
+      } catch (e) {
+        console.error('Portfolio history failed:', e);
+        Toast.error('Could not load portfolio history.');
+      } finally {
+        this.loading = false;
+      }
+      this.renderPositionCharts();
+    },
+
+    renderEquityChart(hist) {
+      const el = document.getElementById('portfolio-chart');
+      if (!el || typeof Chart === 'undefined' || !hist) return;
+      const eq = (hist.equity || []).map(Number);
+      const ts = hist.timestamp || [];
+      if (!eq.length) { this._destroy('portfolio-chart'); return; }
+      const labels = ts.map(t => {
+        const d = new Date(t * 1000);
+        return this.timeframe === '1D'
+          ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+          : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      });
+      const base = hist.base_value != null ? Number(hist.base_value) : eq[0];
+      const up = eq[eq.length - 1] >= base;
+      const line = up ? '#22c55e' : '#ef4444';
+      this._destroy('portfolio-chart');
+      this._charts['portfolio-chart'] = new Chart(el, {
+        type: 'line',
+        data: { labels, datasets: [{ data: eq, borderColor: line, backgroundColor: 'rgba(59,130,246,0.08)',
+                 fill: true, pointRadius: 0, tension: 0.25, borderWidth: 2 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: (c) => Utils.formatCurrency(c.parsed.y) } } },
+          scales: {
+            x: { ticks: { maxTicksLimit: 6, color: '#94a3b8' }, grid: { display: false } },
+            y: { ticks: { callback: (v) => '$' + v, color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.12)' } },
+          },
+        },
+      });
+    },
+
+    async renderPositionCharts() {
+      if (typeof Chart === 'undefined') return;
+      const syms = this.positions.map(p => p.symbol);
+      if (!syms.length) return;
+      let barsBySym = {};
+      try { barsBySym = (await Api.getBars(syms, 30)).bars || {}; }
+      catch (e) { console.warn('Bars fetch failed:', e); return; }
+      this.$nextTick(() => {
+        for (const p of this.positions) {
+          const id = 'pos-chart-' + p.symbol;
+          const el = document.getElementById(id);
+          if (!el) continue;
+          const closes = (barsBySym[p.symbol] || []).map(b => Number(b.c)).filter(n => !isNaN(n));
+          this._destroy(id);
+          if (closes.length < 2) continue;
+          const up = closes[closes.length - 1] >= closes[0];
+          this._charts[id] = new Chart(el, {
+            type: 'line',
+            data: { labels: closes.map((_, i) => i),
+                    datasets: [{ data: closes, borderColor: up ? '#22c55e' : '#ef4444',
+                      backgroundColor: 'transparent', fill: false, pointRadius: 0, tension: 0.3, borderWidth: 1.5 }] },
+            options: { responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              scales: { x: { display: false }, y: { display: false } } },
+          });
+        }
+      });
+    },
+
+    companyName(sym) { return Company.name(sym); },
   };
 }
 

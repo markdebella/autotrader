@@ -12,6 +12,30 @@ const Api = (() => {
   return {
     isConfigured() { return !!CONFIG.apiBaseUrl; },
 
+    /** Equity timeseries for the funds chart. period: 1D|1W|1M|3M|1A|all. */
+    async getPortfolioHistory({ period = '1M', timeframe = '1D' } = {}) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const qs = new URLSearchParams({ period, timeframe }).toString();
+      const resp = await fetch(base() + '/api/portfolio/history?' + qs, {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error(`Backend ${resp.status}`);
+      return resp.json();
+    },
+
+    /** Daily bars per symbol for per-position charts. Returns { bars: { SYM: [...] } }. */
+    async getBars(symbols, days = 30) {
+      const token = Auth.getToken();
+      if (!token) throw new Error('Not signed in');
+      const qs = new URLSearchParams({ symbols: (symbols || []).join(','), days: String(days) }).toString();
+      const resp = await fetch(base() + '/api/bars?' + qs, {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!resp.ok) throw new Error(`Backend ${resp.status}`);
+      return resp.json();
+    },
+
     /** Read-only portfolio snapshot: { account, positions, orders, clock }. */
     async getPortfolio() {
       const token = Auth.getToken();
