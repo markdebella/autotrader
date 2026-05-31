@@ -135,10 +135,13 @@ def portfolio(request: Request):
     _require_owner(request)
     try:
         return {
-            "account":   _alpaca_get("/v2/account"),
-            "positions": _alpaca_get("/v2/positions"),
-            "orders":    _alpaca_get("/v2/orders", {"status": "open", "limit": 50, "direction": "desc"}),
-            "clock":     _alpaca_get("/v2/clock"),
+            "account":      _alpaca_get("/v2/account"),
+            "positions":    _alpaca_get("/v2/positions"),
+            "orders":       _alpaca_get("/v2/orders", {"status": "open", "limit": 50, "direction": "desc"}),
+            # All recent orders (filled/canceled/open) so the dashboard can reconcile the
+            # status + fill price of trades it logged (accepted → filled).
+            "recentOrders": _alpaca_get("/v2/orders", {"status": "all", "limit": 100, "direction": "desc"}),
+            "clock":        _alpaca_get("/v2/clock"),
         }
     except requests.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Alpaca error: {e.response.status_code}")

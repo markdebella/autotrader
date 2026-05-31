@@ -209,6 +209,9 @@ const App = {
       portfolio.clock       = data.clock ?? null;
       portfolio.error       = null;
       portfolio.lastUpdated = Utils.nowISO();
+      // Reconcile our logged trades with their latest Alpaca status (accepted → filled).
+      try { await App.reconcileTrades(data.recentOrders || data.orders || []); }
+      catch (e) { console.warn('Trade reconciliation skipped:', e); }
     } catch (err) {
       console.error('Portfolio refresh error:', err);
       portfolio.error = 'Could not load your portfolio from the backend service. '
@@ -217,6 +220,45 @@ const App = {
     }
     // Friendly names come from the curated CONFIG.companyNames map now; the browser holds
     // no Alpaca keys, so Company.ensure() (which would call Alpaca) simply no-ops.
+  },
+
+  /**
+   * Update logged trades from their latest Alpaca order state. Matches each manifest entry
+   * to a recent order by id; when the status advances (e.g. accepted → filled) it rewrites
+   * the full trade-{id}.json (preserving reasoning/links) and refreshes the manifest entry.
+   * Catches autonomous-executor fills too — any order on the account, however placed.
+   */
+  async reconcileTrades(orders) {
+    const store    = Alpine.store('data');
+    const manifest = store.manifest;
+    if (!manifest || !Array.isArray(manifest.trades) || !orders.length) return;
+
+    const TERMINAL = new Set(['filled', 'canceled', 'cancelled', 'expired', 'rejected', 'done_for_day', 'replaced']);
+    const byId = {};
+    for (const o of orders) byId[o.id] = o;
+
+    let changed = false;
+    // Snapshot the ids first so iterating is unaffected by Manifest.upsert mutating the list.
+    const entries = [...manifest.trades];
+    for (const entry of entries) {
+      const o = byId[entry.id];
+      if (!o || entry.status === o.status || TERMINAL.has(entry.status)) continue;
+      let trade;
+      try { trade = await Drive.loadTrade(entry.id); } catch { continue; }
+      trade.status         = o.status;
+      trade.filledAvgPrice = o.filled_avg_price != null ? Number(o.filled_avg_price) : trade.filledAvgPrice;
+      trade.filledAt       = o.filled_at || trade.filledAt;
+      if (o.filled_qty != null && Number(o.filled_qty) > 0) trade.qty = Number(o.filled_qty);
+      try {
+        await Drive.saveTrade(trade);
+        await Manifest.upsert(trade);   // refresh the lightweight entry + persist the manifest
+        changed = true;
+      } catch (e) {
+        console.warn(`Could not persist reconciled trade ${entry.id}:`, e);
+      }
+      await new Promise(r => setTimeout(r, 120));   // gentle on Drive rate limits
+    }
+    if (changed) Toast.info('Updated trade fills from Alpaca.');
   },
 
 };
