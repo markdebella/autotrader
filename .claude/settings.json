@@ -17,6 +17,8 @@
       "Bash(git restore:*)",
       "Bash(git stash:*)",
       "Bash(git fetch:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
       "Bash(python -m http.server:*)",
       "Bash(npx serve:*)",
 
@@ -29,17 +31,17 @@
       "PowerShell(git restore:*)",
       "PowerShell(git stash:*)",
       "PowerShell(git fetch:*)",
+      "PowerShell(git commit:*)",
+      "PowerShell(git push:*)",
       "PowerShell(python -m http.server:*)",
       "PowerShell(npx serve:*)",
       "PowerShell(Get-ChildItem:*)",
       "PowerShell(Test-Path:*)"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)",
       "Bash(rm -rf:*)",
-      "PowerShell(git push:*)",
       "PowerShell(git reset --hard:*)",
       "PowerShell(git clean:*)",
       "PowerShell(Remove-Item -Recurse*)"

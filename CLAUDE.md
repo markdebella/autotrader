@@ -89,5 +89,7 @@ Scripts load in a fixed order (see `index.html`) because they rely on globals, n
 
 ## Git
 
-- Default branch: `main`. `git push` is intentionally **not** auto-approved — pushing
-  publishes to the live GitHub Pages site, so confirm before pushing.
+- Default branch: `main`. `git push` is **auto-approved** (see `.claude/settings.json`
+  allow list) per the owner's standing "commit + push without asking" preference — note
+  this publishes to the live GitHub Pages site on every push. Destructive ops
+  (`git reset --hard`, `git clean`, `rm -rf`) remain denied.
